@@ -110,19 +110,19 @@ pip install torch_geometric
 ### 9.1 Reproduce the Figure 11 and Table 5. (both on H100 and RTX4090)
 > +  Go to project `eva/plot/kernel_spmm/` directory.
 > + `python plot_figure11_ac.py` and check the figure in `figure11.png` 
-(The plotted figure11.png on H100 corresponds to Figure 11(a) in the paper, and the plotted figure11.png on RTX4090 corresponds to Figure 11(c) in the paper.)
-> + `python plot_figure11_bd.py` and check the figure in `figure11.png`.
-(The plotted figure11_sub.png on H100 corresponds to Figure 11(b) in the paper, and the plotted figure11_sub.png on RTX4090 corresponds to Figure 11(d) in the paper.)
+(The plotted figure11.png on H100 corresponds to Figure 11(a) in the paper, and on RTX4090 corresponds to Figure 11(c) in the paper.)
+> + `python plot_figure11_bd.py` and check the figure in `figure11_sub.png`.
+(The plotted figure11_sub.png on H100 corresponds to Figure 11(b) in the paper, and on RTX4090 corresponds to Figure 11(d) in the paper.)
 > + `python profile_table5.py` and check the result in `table5.txt`.
-(The profiled table5.txt on H100 corresponds to Table5(left) in the paper, and the profiled table5.txt on RTX4090 corresponds to Table5(right) in the paper.)
+(The profiled table5.txt on H100 corresponds to Table5(left) in the paper, and on RTX4090 corresponds to Table5(right) in the paper.)
 
 ### 9.2 Reproduce the Figure 13 and Table 6. (both on H100 and RTX4090)
 > +  Go to project `eva/plot/kernel_sddmm/` directory.
 > + `python plot_figure13_a.py` and check the figure in `figure13(a).png`.
 > + `python plot_figure13_b.py` and check the figure in `figure13(b).png`.
-(The plotted figure13(a).png and figure13(b).png on H100 correspond to Figure 13(a)(b) in the paper, and the plotted figure13(a).png and figure13(b) on RTX4090 corresponds to Figure 13(c)(d) in the paper.)
+(The plotted figure13(a).png and figure13(b).png on H100 correspond to Figure 13(a)(b) in the paper, and on RTX4090 corresponds to Figure 13(c)(d) in the paper.)
 > + `python profile_table6.py` and check the result in `table6.txt`.
-(The profiled table5.txt on H100 corresponds to Table6(left) in the paper, and the profiled table6.txt on RTX4090 corresponds to Table6(right) in the paper.)
+(The profiled table6.txt on H100 corresponds to Table6(left) in the paper, and on RTX4090 corresponds to Table6(right) in the paper.)
 
 ### 9.3 Reproduce the Figure 12. (only on H100 or RTX4090)
 > +  Go to project `eva/plot/ablation/memory/` directory.
@@ -136,12 +136,12 @@ pip install torch_geometric
 > +  Go to project `eva/plot/ablation/throughput/` directory.
 > + `python plot_spmm.py` and check the figure in `figure14(a).png`.
 > + `python plot_sddmm.py` and check the refiguresult in `figure14(b).pmg`.
-(The plotted figure14(a).png and figure14(b).png on H100 correspond to Figure 14(a)(b) in the paper, and the plotted figure14(a).png and figure14(b) on RTX4090 corresponds to Figure 14(c)(d) in the paper.)
+(The plotted figure14(a).png and figure14(b).png on H100 correspond to Figure 14(a)(b) in the paper, and on RTX4090 corresponds to Figure 14(c)(d) in the paper.)
 
 ### 9.5 Reproduce the Figure 15. (both on H100 and RTX4090)
 > +  Go to project `eva/plot/ablation/access/` directory.
 > + `python plot.py` and check the figure in `figure15.png`.
-(The plotted figure15.png on H100 correspond to Figure 15(left) in the paper, and the plotted figure15.png on RTX4090 corresponds to Figure 15(right) in the paper.)
+(The plotted figure15.png on H100 correspond to Figure 15(left) in the paper, and on RTX4090 corresponds to Figure 15(right) in the paper.)
 
 ### 9.6 Reproduce the Table 7. (only on H100 or RTX4090)
 > +  Go to project `eva/plot/ablation/format/` directory.
