@@ -6,9 +6,10 @@ git clone --recursive git@github.com:anonymous2024111/anonymous.git
 > + `Ubuntu 16.04+`
 > + `cmake >= 3.29`
 > + `CUDA >= 11.8`
-> + NVIDIA GPU with `RTX4090 and H100 GPUs`.
+> + one NVIDIA RTX4090 GPU and one H100 PCIe GPU.
 
 ## 2. Environment Setup.
+Conda environments need to be set up on machines with H100 PCIe and RTX4090 GPUs following the steps below.
 
 ### 2.1 Install via Conda.
 + 2.1.1 Install **`conda`** on system. **[(Toturial)](https://docs.anaconda.com/anaconda/install/linux/)**.
@@ -52,7 +53,7 @@ pip install  dgl -f https://data.dgl.ai/wheels/torch-2.1/cu118/repo.html
 pip install torch_geometric
 ```
 
-## 7. Running **FlashSparse**.
+## 7. Running **FlashSparse** on H100 PCIe and RTX4090 GPUs.
 ### 7.1 SpMM test
 > +  Go to project `eva/kernel/spmm/` directory.
 > + `bash ./test_spmm_shell.sh` to run all SpMM experiments. (ablout 200 minutes)
@@ -76,7 +77,7 @@ pip install torch_geometric
 > + Check the results in `result/FlashSparse/agnn/fs_agnn_32.csv`. (ablout 5 minutes)
 > + Check the results in `result/Baseline/agnn/baseline_agnn_32.csv`. (ablout 15 minutes)
 
-## 8. Running **Baselines**.
+## 8. Running **Baselines** on H100 PCIe and RTX4090 GPUs.
 ### 8.1 Evaluating **RoDe, Sputnik and cuSPARSE**.
 > +  Go to project `Baseline/RoDe/script/` directory.
 > + `bash download.sh` to download the same 515 matices in a specific format for RoDe.
@@ -106,19 +107,24 @@ pip install torch_geometric
 > + `python summarize.py` to summarize all results.
 
 ## 9 Reproducing the experinmental figures and tables in FlashSparse.
-### 9.1 Reproduce the Figure 11 and Table 5.
+### 9.1 Reproduce the Figure 11 and Table 5. (both on H100 and RTX4090)
 > +  Go to project `eva/plot/kernel_spmm/` directory.
-> + `python plot_figure11_ac.py` and check the figure in `figure11(a)(c).png`.
-> + `python plot_figure11_bd.py` and check the figure in `figure11(b)(d).png`.
+> + `python plot_figure11_ac.py` and check the figure in `figure11.png` 
+(The plotted figure11.png on H100 corresponds to Figure 11(a) in the paper, and the plotted figure11.png on RTX4090 corresponds to Figure 11(c) in the paper.)
+> + `python plot_figure11_bd.py` and check the figure in `figure11.png`.
+(The plotted figure11_sub.png on H100 corresponds to Figure 11(b) in the paper, and the plotted figure11_sub.png on RTX4090 corresponds to Figure 11(d) in the paper.)
 > + `python profile_table5.py` and check the result in `table5.txt`.
+(The profiled table5.txt on H100 corresponds to Table5(left) in the paper, and the profiled table5.txt on RTX4090 corresponds to Table5(right) in the paper.)
 
-### 9.2 Reproduce the Figure 13 and Table 6.
+### 9.2 Reproduce the Figure 13 and Table 6. (both on H100 and RTX4090)
 > +  Go to project `eva/plot/kernel_sddmm/` directory.
 > + `python plot_figure13_a.py` and check the figure in `figure13(a).png`.
 > + `python plot_figure13_b.py` and check the figure in `figure13(b).png`.
+(The plotted figure13(a).png and figure13(b).png on H100 correspond to Figure 13(a)(b) in the paper, and the plotted figure13(a).png and figure13(b) on RTX4090 corresponds to Figure 13(c)(d) in the paper.)
 > + `python profile_table6.py` and check the result in `table6.txt`.
+(The profiled table5.txt on H100 corresponds to Table6(left) in the paper, and the profiled table6.txt on RTX4090 corresponds to Table6(right) in the paper.)
 
-### 9.3 Reproduce the Figure 12.
+### 9.3 Reproduce the Figure 12. (only on H100 or RTX4090)
 > +  Go to project `eva/plot/ablation/memory/` directory.
 > + `python spmm.py` and check the result in `memory_spmm.csv`. (about 20 minutes)
 > + `python sddmm.py` and check the result in `memory_sddmm.csv`.  (about 20 minutes)
@@ -126,28 +132,30 @@ pip install torch_geometric
 > + `python plot_spmm.py` and check the figure in `spmm_mem.png`.
 > + `python plot_sddmm.py` and check the figure in `sddmm_mem.png`.
 
-### 9.4 Reproduce the Figure 14.
+### 9.4 Reproduce the Figure 14. (both on H100 and RTX4090)
 > +  Go to project `eva/plot/ablation/throughput/` directory.
 > + `python plot_spmm.py` and check the figure in `figure14(a).png`.
 > + `python plot_sddmm.py` and check the refiguresult in `figure14(b).pmg`.
+(The plotted figure14(a).png and figure14(b).png on H100 correspond to Figure 14(a)(b) in the paper, and the plotted figure14(a).png and figure14(b) on RTX4090 corresponds to Figure 14(c)(d) in the paper.)
 
-### 9.5 Reproduce the Figure 15.
+### 9.5 Reproduce the Figure 15. (both on H100 and RTX4090)
 > +  Go to project `eva/plot/ablation/access/` directory.
 > + `python plot.py` and check the figure in `figure15.png`.
+(The plotted figure15.png on H100 correspond to Figure 15(left) in the paper, and the plotted figure15.png on RTX4090 corresponds to Figure 15(right) in the paper.)
 
-### 9.6 Reproduce the Table 7.
+### 9.6 Reproduce the Table 7. (only on H100 or RTX4090)
 > +  Go to project `eva/plot/ablation/format/` directory.
 > + `python format.py` and check the result in `result.csv`.  (about 25 minutes)
 > + `python profile.py` and check the output`.
 
-### 9.7 Reproduce the Figure 16.
+### 9.7 Reproduce the Figure 16. (only on H100 or RTX4090)
 > +  Go to project `eva/plot/gcn/` directory.
 > + `python plot.py` and check the figure in `figure16_gcn.png`.
 
 > +  Go to project `eva/plot/agnn/` directory.
 > + `python plot.py` and check the figure in `figure16_agnn.png`.
 
-### 9.8 Reproduce the Table 8.
+### 9.8 Reproduce the Table 8. (only on H100 or RTX4090)
 > +  Go to project `eva/accuracy/gcn/` directory.
 > + `python eva_gcn.py`. (about 1 minutes)
 > +  Check the result in `result/Baseline/gcn/accuracy.csv`.

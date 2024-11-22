@@ -166,5 +166,5 @@ plt.xticks(rotation=25)
 plt.xticks(fontsize=6)
 plt.xticks(ticks=num_edges_str[::interval])
 
-plt.savefig(project_dir + '/eva/plot/kernel_spmm/figure11(b)(d).png', dpi=800)
+plt.savefig(project_dir + '/eva/plot/kernel_spmm/figure11_sub.png', dpi=800)
 plt.clf()

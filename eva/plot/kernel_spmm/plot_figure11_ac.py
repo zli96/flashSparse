@@ -224,5 +224,5 @@ g.set_ylabel('')
 g.set_xlabel('')
 
 
-plt.savefig(project_dir + '/eva/plot/kernel_spmm/figure11(a)(c).png', dpi=800)
+plt.savefig(project_dir + '/eva/plot/kernel_spmm/figure11.png', dpi=800)
 plt.clf()
