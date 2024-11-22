@@ -10,7 +10,7 @@ current_dir = os.path.dirname(__file__)
 project_dir = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
 
 df = pd.read_csv(project_dir + '/dataset/data_filter.csv')
-
+df = pd.read_csv(project_dir + '/result/ref/baseline_h100_spmm_128.csv')
 #result path
 file_name = project_dir + '/result/Baseline/spmm/rode_spmm_f32_n128.csv'
 head = ['dataSet','rows_','columns_','nonzeros_','sputnik','Sputnik_gflops','cusparse','cuSPARSE_gflops','rode','ours_gflops']

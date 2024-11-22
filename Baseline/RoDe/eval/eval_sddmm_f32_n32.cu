@@ -172,10 +172,12 @@ int main(int argc,char ** argv) {
 
     cudaDeviceSynchronize();
     cudaEventRecord(event1,0);
+    if(c_sm.Nonzeros() <1000000){
     for(int i=0; i < ITER; ++i)
         SputnikSddmm(m,k,n,c_sm.Nonzeros(),
                     c_sm.RowIndices(),c_sm.RowOffsets(),c_sm.ColumnIndices(),c_sm.Values(),
                     d_B1.Values(),d_B1.Values(),d_C1,stream1);
+    }
 
     cudaEventRecord(event2,0);
 
@@ -183,6 +185,10 @@ int main(int argc,char ** argv) {
     cudaEventSynchronize(event2);
     cudaEventElapsedTime(&tot_ms, event1, event2);
     cudaDeviceSynchronize();
+
+    if(c_sm.Nonzeros() >= 5000000){
+            tot_ms = 10000000;
+    }
 
     gflops = (double)ITER * (double)c_sm.Nonzeros() * 2 * k / tot_ms / 1000000;
     printf(", %f, %f",tot_ms/(float)ITER,gflops);

@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import scipy.sparse as sp
 from scipy.sparse import coo_matrix
 from scipy.sparse import *
-import FS_Block
+import FS_Block_gpu
 
 
 # tf32 
@@ -43,7 +43,7 @@ class dataSet_tf32(torch.nn.Module):
         
         self.row_pointers, \
         self.column_index, \
-        self.degrees = FS_Block.blockProcess_tf32(self.row_pointers, self.column_index, self.degrees, window, wide)
+        self.degrees, self.exe = FS_Block_gpu.preprocess_gpu_fs(self.row_pointers, self.column_index, self.num_nodes, self.num_edges, window, wide)
 
     def init_embedding(self):
         '''
@@ -90,7 +90,7 @@ class dataSet_tf32_balance(torch.nn.Module):
         self.column_index, \
         self.degrees, \
         self.t_window_rowTensor, \
-        self.t_atomicTensor = FS_Block.blockProcess_tf32_balance(self.row_pointers, self.column_index, self.degrees, window, wide, partSize)
+        self.t_atomicTensor, self.exe = FS_Block_gpu.preprocess_gpu_fs_balance(self.row_pointers, self.column_index, self.num_nodes, self.num_edges, window, wide)
 
     def init_embedding(self):
         '''

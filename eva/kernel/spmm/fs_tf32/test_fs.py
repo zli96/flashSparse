@@ -11,7 +11,7 @@ def fs_tf32_8_1(data, epoches, dimN, partsize_t, data_path,  window, wide):
     X_prime, spmm_ms_avg  = FS_SpMM.forward_tf32(   
         inputInfo.row_pointers, 
         inputInfo.column_index, 
-        inputInfo.degrees, 
+        inputInfo.degrees.float(), 
         inputInfo.x, 
         inputInfo.num_nodes, 
         inputInfo.x.size(1), 
@@ -28,7 +28,7 @@ def fs_tf32_8_1_map(data, epoches, dimN, partsize_t, data_path,  window, wide):
     X_prime, spmm_ms_avg  = FS_SpMM.forward_tf32_map(   
         inputInfo.row_pointers, 
         inputInfo.column_index, 
-        inputInfo.degrees, 
+        inputInfo.degrees.float(), 
         inputInfo.x, 
         inputInfo.num_nodes, 
         inputInfo.x.size(1), 
@@ -46,7 +46,7 @@ def fs_tf32_8_1_balance(data, epoches, dimN, partsize_t, data_path,  window, wid
     X_prime, spmm_ms_avg  = FS_SpMM.forward_tf32_balance(   
         inputInfo.row_pointers, 
         inputInfo.column_index, 
-        inputInfo.degrees, 
+        inputInfo.degrees.float(), 
         inputInfo.t_window_rowTensor,
         inputInfo.t_atomicTensor,
         inputInfo.x, 
@@ -67,7 +67,7 @@ def fs_tf32_16_1(data, epoches, dimN, partsize_t, data_path,  window, wide):
     X_prime, spmm_ms_avg  = FS_SpMM.forward_tf32_16(   
         inputInfo.row_pointers, 
         inputInfo.column_index, 
-        inputInfo.degrees, 
+        inputInfo.degrees.float(), 
         inputInfo.x, 
         inputInfo.num_nodes, 
         inputInfo.x.size(1), 

@@ -219,6 +219,9 @@ std::vector<torch::Tensor> blockProcess_fp16(torch::Tensor row1, torch::Tensor c
         }
         // 将统计结果放入 vector<pair> 中
         std::vector<std::pair<int, int>> countVector(elementCounts.begin(), elementCounts.end());
+        std::sort(countVector.begin(), countVector.end(), [](const auto& a, const auto& b) {
+            return a.first < b.first;
+        });
         //获取countVector的长度
         v.row = countVector.size();
         v.pad=((v.row/wide+1))*wide;
@@ -323,6 +326,9 @@ std::vector<torch::Tensor> blockProcess_fp16_ori(torch::Tensor row1, torch::Tens
         }
         // 将统计结果放入 vector<pair> 中
         std::vector<std::pair<int, int>> countVector(elementCounts.begin(), elementCounts.end());
+        std::sort(countVector.begin(), countVector.end(), [](const auto& a, const auto& b) {
+            return a.first < b.first;
+        });
         //获取countVector的长度
         v.row = countVector.size();
         v.pad=((v.row/wide+1))*wide;
@@ -585,6 +591,7 @@ std::vector<torch::Tensor> blockProcess_fp16_balance(torch::Tensor row1, torch::
         //开始load balance划分
         //计算有多少block
         int blocks = pad/wide; 
+        if(blocks  > 0){
         if(blocks <= partSize_t)
         {
             v.row.push_back(v_size);
@@ -624,6 +631,7 @@ std::vector<torch::Tensor> blockProcess_fp16_balance(torch::Tensor row1, torch::
                 }
             }
         }
+    }
 
         //封装v
         #pragma omp critical  

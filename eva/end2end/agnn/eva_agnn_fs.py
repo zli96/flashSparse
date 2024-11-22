@@ -36,7 +36,7 @@ if __name__ == "__main__":
     project_dir = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
     
     for hidden in hidden_list:
-        layer = 3
+        layer = 5
         epoches = 300
         featuredim = 512
         classes = 16

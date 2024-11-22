@@ -49,7 +49,7 @@ for index, row in data_df.iterrows():
         csv_writer = csv.writer(csvfile)
         csv_writer.writerow(res_temp)
         
-    print(row.iloc[0] + 'is success.')
+    print(row.iloc[0] + ' is success.')
         
 
 print('all success!')

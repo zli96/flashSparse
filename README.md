@@ -1,12 +1,11 @@
-## 1. Clone this project.
+## 1. Download this project.
 ```
-git clone --recursive git
+unzip FlashSparse.zip
 ```
 + **Requirements**: 
 > + `Ubuntu 16.04+`
-> + `gcc >= 7.5`
-> + `cmake >= 3.14`
-> + `CUDA >= 11.0` and `nvcc >= 11.0`
+> + `cmake >= 3.29`
+> + `CUDA >= 11.8`
 > + NVIDIA GPU with `RTX4090 and H100 GPUs`.
 
 ## 2. Environment Setup.
@@ -27,9 +26,6 @@ conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvi
 cd FlashSparse/
 bash comple.sh
 ``` 
-to install the TCGNN_conv modules with Pytorch binding. 
-**Note that this step is required for both Docker and Conda setup.**
-
 
 ## 4. Download datasets.
 Get the preprocessed datasets (total 515 sparse matrices).
@@ -53,51 +49,54 @@ pip install  dgl -f https://data.dgl.ai/wheels/torch-2.1/cu118/repo.html
 
 ### 6.2 Install **`Pytorch-Geometric (PyG)`** **[(Toturial)](https://pytorch-geometric.readthedocs.io/en/latest/notes/installation.html)**: 
 ```      
-    pip install torch_geometric
+pip install torch_geometric
 ```
 
 ## 7. Running **FlashSparse**.
 ### 7.1 SpMM test
 > +  Go to project `eva/kernel/spmm/` directory.
-> + `bash ./test_spmm_shell.sh` to run all SpMM experiments.
+> + `bash ./test_spmm_shell.sh` to run all SpMM experiments. (ablout 200 minutes)
 > + Check the results in `result/FlashSparse/spmm/*.csv`.
 
 ### 7.2 SDDDMM test
 > +  Go to project `eva/kernel/sddmm/` directory.
-> + `bash ./test_sddmm_shell.sh` to run all SpMM experiments.
+> + `bash ./test_sddmm_shell.sh` to run all SpMM experiments. (ablout 100 minutes)
 > + Check the results in `result/FlashSparse/sddmm/*.csv`.
 
 ### 7.3 GCN and AGNN tests
 > +  Go to project `eva/end2end/gcn/` directory.
 > + `bash eva_gcn_fs.py` to run GCN experiments.
-> + `bash eva_gvn_baseline.py` to run GCN experiments.
-> + Check the results in `result/FlashSparse/gcn/fs_gcn_128.csv`.
-> + Check the results in `result/Baseline/agnn/baseline_gcn_128.csv`.
+> + `bash eva_gcn_baseline.py` to run GCN experiments.
+> + Check the results in `result/FlashSparse/gcn/fs_gcn_128.csv`. (ablout 5 minutes)
+> + Check the results in `result/Baseline/agnn/baseline_gcn_128.csv`. (ablout 15 minutes)
 
 > +  Go to project `eva/end2end/agnn/` directory.
 > + `bash eva_agnn_fs.py` to run GCN experiments.
 > + `bash eva_agnn_baseline.py` to run GCN experiments.
-> + Check the results in `result/FlashSparse/agnn/fs_agnn_32.csv`.
-> + Check the results in `result/Baseline/agnn/baseline_agnn_32.csv`.
+> + Check the results in `result/FlashSparse/agnn/fs_agnn_32.csv`. (ablout 5 minutes)
+> + Check the results in `result/Baseline/agnn/baseline_agnn_32.csv`. (ablout 15 minutes)
 
 ## 8. Running **Baselines**.
 ### 8.1 Evaluating **RoDe, Sputnik and cuSPARSE**.
 > +  Go to project `Baseline/RoDe/script/` directory.
-> + `bash download.sh` to download and preporcess the 515 matices.
-> + `bash test_spmm_shell.sh` to run all SpMM experiments.
-> + `bash test_sddmm_shell.sh` to run all SDDMM experiments.
+> + `bash download.sh` to download the same 515 matices in a specific format for RoDe.
+> + `bash test_spmm_shell.sh` to run all SpMM experiments. (about 300 minutes)
+> + `bash test_sddmm_shell.sh` to run all SDDMM experiments. (about 300 minutes)
 > + Check the results in `result/Baseline/spmm/rode*.csv` and `result/Baseline/sddmm/rode*.csv`.
 
 ### 8.2 Evaluating **DTC-SpMM**.
 > +  Go to project `Baseline/DTC-SpMM/` directory.
-> + `bash test_spmm_shell.sh` to run all SpMM experiments.
+> + `bash test_spmm_shell.sh` to run all SpMM experiments. (about 20 minutes)
 > + Check the results in `result/Baseline/spmm/dtc*.csv`.
 
-### 8.3 Evaluating **TCGNN, cuSPARSE, GE-SpMM**.
+### 8.3 Evaluating **GNNAdvisor, TCGNN, GE-SpMM**.
 > +  Go to project `eva/kernel/spmm/` directory.
-> + `bash test_spmm_shell_base.sh` to run all SpMM experiments.
+> + `bash test_spmm_shell_base.sh` to run all SpMM experiments.  (about 100 minutes)
 > + Check the results in `result/Baseline/spmm/base*.csv`.
 
+> +  Go to project `eva/kernel/sddmm/` directory.
+> + `bash test_sddmm_shell_base.sh` to run all SDDMM experiments. (about 20 minutes)
+> + Check the results in `result/Baseline/sddmm/base*.csv`.
 
 ### 8.4 Summarize the results in all baselines.
 > +  Go to project `result/Baseline/spmm/` directory.
@@ -121,8 +120,8 @@ pip install  dgl -f https://data.dgl.ai/wheels/torch-2.1/cu118/repo.html
 
 ### 9.3 Reproduce the Figure 12.
 > +  Go to project `eva/plot/ablation/memory/` directory.
-> + `python spmm.py` and check the result in `memory_spmm.csv`.
-> + `python sddmm.py` and check the result in `memory_sddmm.csv.`
+> + `python spmm.py` and check the result in `memory_spmm.csv`. (about 20 minutes)
+> + `python sddmm.py` and check the result in `memory_sddmm.csv`.  (about 20 minutes)
 
 > + `python plot_spmm.py` and check the figure in `spmm_mem.png`.
 > + `python plot_sddmm.py` and check the figure in `sddmm_mem.png`.
@@ -134,11 +133,11 @@ pip install  dgl -f https://data.dgl.ai/wheels/torch-2.1/cu118/repo.html
 
 ### 9.5 Reproduce the Figure 15.
 > +  Go to project `eva/plot/ablation/access/` directory.
-> + `python plot.py` and check the figure in `figure16.png`.
+> + `python plot.py` and check the figure in `figure15.png`.
 
 ### 9.6 Reproduce the Table 7.
 > +  Go to project `eva/plot/ablation/format/` directory.
-> + `python format.py` and check the result in `result.csv`.
+> + `python format.py` and check the result in `result.csv`.  (about 25 minutes)
 > + `python profile.py` and check the output`.
 
 ### 9.7 Reproduce the Figure 16.
@@ -149,5 +148,6 @@ pip install  dgl -f https://data.dgl.ai/wheels/torch-2.1/cu118/repo.html
 > + `python plot.py` and check the figure in `figure16_agnn.png`.
 
 ### 9.8 Reproduce the Table 8.
-> +  Go to project `result/Baseline/gcn/` directory.
-> +  Check the result in `accuracy.csv`.
+> +  Go to project `eva/accuracy/gcn/` directory.
+> + `python eva_gcn.py`. (about 1 minutes)
+> +  Check the result in `result/Baseline/gcn/accuracy.csv`.

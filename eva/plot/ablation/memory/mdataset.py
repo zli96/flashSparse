@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import scipy.sparse as sp
 from scipy.sparse import coo_matrix
 from scipy.sparse import *
-import FS_Block
+import FS_Block_gpu
 
 # fp16
 class dataSet_fp16(torch.nn.Module):
@@ -40,7 +40,7 @@ class dataSet_fp16(torch.nn.Module):
         
         self.row_pointers, \
         self.column_index, \
-        self.degrees = FS_Block.blockProcess_fp16_ori(self.row_pointers, self.column_index, self.degrees, window, wide)
+        self.degrees, _ = FS_Block_gpu.preprocess_gpu_fs(self.row_pointers, self.column_index, self.num_nodes, self.num_edges, window, wide)
 
 
         
@@ -76,4 +76,4 @@ class dataSet_fp16_me(torch.nn.Module):
         
         self.row_pointers, \
         self.column_index, \
-        self.degrees = FS_Block.blockProcess_fp16(self.row_pointers, self.column_index, self.degrees, window, wide)
+        self.degrees, _ = FS_Block_gpu.preprocess_gpu_fs(self.row_pointers, self.column_index, self.num_nodes, self.num_edges, window, wide)

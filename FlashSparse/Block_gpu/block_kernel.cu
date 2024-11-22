@@ -104,6 +104,7 @@ __global__ void get_padding_tileid_kernel(int *ori_offset, uint8_t *ori_tileid,
   }
 }
 
+
 __global__ void fill_edgeToRow(int *edgeToRow, int *nodePointer,
                                int num_nodes) {
   int tid = blockDim.x * blockIdx.x + threadIdx.x;
@@ -118,6 +119,20 @@ __global__ void fill_edgeToRow(int *edgeToRow, int *nodePointer,
     }
   }
 }
+
+void fill_edgeToRow_cuda(int *edgeToRow, int *nodePointer, int num_nodes) {
+  int wrap_size = 32;
+  int block_size = 1024;
+  int grid_size = (num_nodes * wrap_size + block_size - 1) / block_size;
+  fill_edgeToRow<<<grid_size, block_size>>>(edgeToRow, nodePointer, num_nodes);
+  cudaError_t error = cudaGetLastError();
+  if (error != cudaSuccess) {
+    // print the CUDA error message and exit
+    printf("CUDA error: %s\n", cudaGetErrorString(error));
+    exit(-1);
+  }
+}
+
 /*Generate segment*/
 __global__ void fill_segment(int *nodePointer, int *seg_out, int blockSize_h,
                              int blockSize_w, int num_nodes) {
@@ -375,14 +390,13 @@ __global__ void generate_edgetocolumn_fs(int *nodePointer, int *edgelist,
   const unsigned threadPerBlock = blockDim.x * blockDim.y;
   int *start = edgelist_sort + block_start;
   int size = 0;
+  int num = 0;
   //去重
   inplace_deduplication(start, num_window_edges, &size);
-	if(winId==0)
-	printf("%d\n", size);
 
   //num是每个窗口有多少个block
-  int num = (size + blockSize_w) / blockSize_w;
-  if((size%blockSize_w)==0) num-=1;
+  if(size>0)
+  num = (size + blockSize_w - 1) / blockSize_w;
   atomicAdd(blocknum, num);
   atomicAdd(vectornum, size);
   //vector个数
@@ -415,11 +429,110 @@ void generate_edgetocolumn_cuda_fs(int *nodePointer, int *edgelist,
   }
 }
 
+
+__global__ void generate_edgetocolumn_fs_ori(int *nodePointer, int *edgelist,
+                                      int *edgelist_sort, int *edgetocol,
+                                      int *blockpartition, int *blocknum, int *vectornum,
+                                      int blockSize_h, int blockSize_w,
+                                      int num_nodes) {
+  int winId = blockIdx.x; // each warp one window
+  unsigned block_start = nodePointer[winId * blockSize_h];
+  unsigned block_end =
+      nodePointer[min(winId * blockSize_h + blockSize_h, num_nodes)];
+  unsigned num_window_edges = block_end - block_start;
+  if (num_window_edges == 0)
+    return;
+  const unsigned threadPerBlock = blockDim.x * blockDim.y;
+  int *start = edgelist_sort + block_start;
+  int size = 0;
+  int num = 0;
+  //去重
+  inplace_deduplication(start, num_window_edges, &size);
+
+  //num是每个窗口有多少个block
+  if(size>0)
+  num = (size + blockSize_w - 1) / blockSize_w;
+  atomicAdd(blocknum, num);
+  atomicAdd(vectornum, num*blockSize_w);
+  //vector个数
+  blockpartition[winId] = num*blockSize_w;
+  for (unsigned idx = block_start; idx < block_end; idx += 1) {
+    int index = binarysearch(start, size + 1, edgelist[idx]);
+    edgetocol[idx] = index;
+  }
+}
+void generate_edgetocolumn_cuda_fs_ori(int *nodePointer, int *edgelist,
+                                int *edgelist_sort, int *edgetocol,
+                                int *blockpartition, int *blocknum, int * vectornum,
+                                int blockSize_h, int blockSize_w,
+                                int num_nodes) {
+  int block_size = 1;
+  int window_count = (num_nodes + blockSize_h - 1) / blockSize_h;
+  generate_edgetocolumn_fs_ori<<<window_count, block_size>>>(
+      nodePointer, edgelist, edgelist_sort, edgetocol, blockpartition, blocknum, vectornum,
+      blockSize_h, blockSize_w, num_nodes);
+  cudaError_t error = cudaGetLastError();
+  if (error != cudaSuccess) {
+    printf("CUDA error: %s\n", cudaGetErrorString(error));
+    exit(-1);
+  }
+}
+
+__global__ void generate_edgetocolumn_fs_balance(int *nodePointer, int *edgelist,
+                                      int *edgelist_sort, int *edgetocol,
+                                      int *blockpartition, int *vectorpartition, int *blocknum, int *vectornum,
+                                      int blockSize_h, int blockSize_w,
+                                      int num_nodes, int part) {
+  int winId = blockIdx.x; // each warp one window
+  unsigned block_start = nodePointer[winId * blockSize_h];
+  unsigned block_end =
+      nodePointer[min(winId * blockSize_h + blockSize_h, num_nodes)];
+  unsigned num_window_edges = block_end - block_start;
+  if (num_window_edges == 0)
+    return;
+  const unsigned threadPerBlock = blockDim.x * blockDim.y;
+  int *start = edgelist_sort + block_start;
+  int size = 0;
+  int num = 0;
+  //去重
+  inplace_deduplication(start, num_window_edges, &size);
+
+  //num是每个窗口有多少个block
+  if(size>0)
+  num = (size + blockSize_w - 1) / blockSize_w;
+  //group 个数
+  int group = (num + part - 1) / part;
+  atomicAdd(blocknum, group);
+  atomicAdd(vectornum, size);
+  blockpartition[winId] = group;
+  vectorpartition[winId] = size;
+  for (unsigned idx = block_start; idx < block_end; idx += 1) {
+    int index = binarysearch(start, size + 1, edgelist[idx]);
+    edgetocol[idx] = index;
+  }
+}
+void generate_edgetocolumn_cuda_fs_balance(int *nodePointer, int *edgelist,
+                                int *edgelist_sort, int *edgetocol,
+                                int *blockpartition, int *vectorpartition, int *blocknum, int * vectornum,
+                                int blockSize_h, int blockSize_w,
+                                int num_nodes, int part) {
+  int block_size = 1;
+  int window_count = (num_nodes + blockSize_h - 1) / blockSize_h;
+  generate_edgetocolumn_fs_balance<<<window_count, block_size>>>(
+      nodePointer, edgelist, edgelist_sort, edgetocol, blockpartition, vectorpartition, blocknum, vectornum,
+      blockSize_h, blockSize_w, num_nodes, part);
+  cudaError_t error = cudaGetLastError();
+  if (error != cudaSuccess) {
+    printf("CUDA error: %s\n", cudaGetErrorString(error));
+    exit(-1);
+  }
+}
+
 /*Generate TC offset, tileid and AtoB*/
 __global__ void generate_tcoffset_id_atob_fs(
     int *nodePointer, int *rowwindow_offset, int *edgeToColumn, int *edgeToRow,
-    int *edgeList, float *values,
-    int *sparseatob, int max_block, int num_nodes, int blockSize_h,
+    int *edgeList, half *values,
+    int *sparseatob, int max_block, int num_nodes, long blockSize_h,
     int blockSize_w, int num_row_windows) {
 //   extern __shared__ int pos_ptr[];
   int tid = threadIdx.x;
@@ -430,33 +543,13 @@ __global__ void generate_tcoffset_id_atob_fs(
   if (num_vector == 0) {
     return;
   }
-//   int *tcblock_offset_ptr = pos_ptr + num_blocks;
-//   int *tcblock_offset_global_ptr = tcblock_offset + block_start;
-//   int *tcblock_nnz_ptr = pos_ptr + num_blocks + 1;
   unsigned element_start = nodePointer[winId * blockSize_h];
   unsigned element_end =
-      nodePointer[min(winId * blockSize_h + blockSize_h, num_nodes)];
+      nodePointer[min(int(winId * blockSize_h + blockSize_h), num_nodes)];
   unsigned num_window_edges = element_end - element_start;
   if (num_window_edges == 0) {
     return;
   }
-//   for (int i = 0; i < 2 * num_blocks + 1; i++) {
-//     pos_ptr[i] = 0;
-//   }
-
-//   for (unsigned e_index = element_start; e_index < element_end; e_index++) {
-//     unsigned col = edgeToColumn[e_index]; // new col
-// 	//所在的块中的非零元个数+1
-//     tcblock_nnz_ptr[col / blockSize_w]++;
-//   }
-//   //每个块的非零元个数
-//   for (int i = 0; i < num_blocks; i++) {
-//     tcblock_offset_global_ptr[i] = tcblock_nnz_ptr[i];
-//   }
-//   for (int i = 0; i < num_blocks; i++) {
-//     tcblock_nnz_ptr[i] += tcblock_nnz_ptr[i - 1];
-//   }
-
   //开始看每个非零元在block内的偏移了
 //   auto tileid = tcblocktile_id + element_start;
   auto values_ = values + vector_start*blockSize_h;
@@ -470,9 +563,9 @@ __global__ void generate_tcoffset_id_atob_fs(
 	//如果存在， 且元素在residue里，需要按每行residue偏移
 	int residue = num_vector % blockSize_w;
 	if(residue>0 & col>=(num_vector-residue)){
-		values_[tcblock_id*blockSize_h*blockSize_w + row_local*residue] = 1.0;
+		values_[tcblock_id*blockSize_h*blockSize_w + row_local*residue + col_local] = __float2half(1.0);
 	}else{
-		values_[tcblock_id*blockSize_h*blockSize_w + row_local*blockSize_w] = 1.0;
+		values_[tcblock_id*blockSize_h*blockSize_w + row_local*blockSize_w + col_local] = __float2half(1.0);
 	}
 	sparse_AToB[tcblock_id * blockSize_w + col_local] = edgeList[e_index];
     // pos_ptr[tcblock_id]++;
@@ -481,31 +574,174 @@ __global__ void generate_tcoffset_id_atob_fs(
 
 void generate_tcoffset_id_atob_cuda_fs(int *nodePointer, int *rowwindow_offset,
                                     int *edgeToColumn, int *edgeToRow,
-                                    int *edgeList, float *values, int *sparseatob,
+                                    int *edgeList, half *values, int *sparseatob,
                                     int max_block, int num_nodes,
                                     int blockSize_h, int blockSize_w,
                                     int num_row_windows) {
   int block_size = 1;
   int window_count = num_row_windows;
-//   const int dynamic_shared_size = (2 * max_block + 1) * sizeof(int);
-//   std::cout << "dynamic_shared_size: " << dynamic_shared_size << std::endl;
-//   if (dynamic_shared_size > 98304) {
-//     int maxbytes = 131072; // 96 KB
-//     cudaFuncSetAttribute(generate_tcoffset_id_atob_fs,
-//                          cudaFuncAttributeMaxDynamicSharedMemorySize, maxbytes);
-//   } else if (dynamic_shared_size > 65536) {
-//     int maxbytes = 98304; // 96 KB
-//     cudaFuncSetAttribute(generate_tcoffset_id_atob_fs,
-//                          cudaFuncAttributeMaxDynamicSharedMemorySize, maxbytes);
-//   } else if (dynamic_shared_size > 32768) {
-//     int maxbytes = 65536; // 128 KB
-//     cudaFuncSetAttribute(generate_tcoffset_id_atob_fs,
-//                          cudaFuncAttributeMaxDynamicSharedMemorySize, maxbytes);
-//   }
   generate_tcoffset_id_atob_fs<<<window_count, block_size>>>(
       nodePointer, rowwindow_offset, edgeToColumn, edgeToRow, edgeList,
     values, sparseatob, max_block, num_nodes,
       blockSize_h, blockSize_w, num_row_windows);
+  cudaError_t error = cudaGetLastError();
+  if (error != cudaSuccess) {
+    printf("CUDA error: %s\n", cudaGetErrorString(error));
+    exit(-1);
+  }
+}
+
+
+__global__ void generate_tcoffset_id_atob_fs_ori(
+    int *nodePointer, int *rowwindow_offset, int *edgeToColumn, int *edgeToRow,
+    int *edgeList, half *values,
+    int *sparseatob, int max_block, int num_nodes, long blockSize_h,
+    int blockSize_w, int num_row_windows) {
+//   extern __shared__ int pos_ptr[];
+  int tid = threadIdx.x;
+  int winId = blockIdx.x; // each warp one window
+  unsigned vector_start = rowwindow_offset[winId];
+  unsigned vector_end = rowwindow_offset[min(winId + 1, num_row_windows)];
+  unsigned num_vector = vector_end - vector_start;
+  if (num_vector == 0) {
+    return;
+  }
+  unsigned element_start = nodePointer[winId * blockSize_h];
+  unsigned element_end =
+      nodePointer[min(int(winId * blockSize_h + blockSize_h), num_nodes)];
+  unsigned num_window_edges = element_end - element_start;
+  if (num_window_edges == 0) {
+    return;
+  }
+  //开始看每个非零元在block内的偏移了
+//   auto tileid = tcblocktile_id + element_start;
+  auto values_ = values + vector_start*blockSize_h;
+  auto sparse_AToB = sparseatob + vector_start;
+  for (unsigned e_index = element_start; e_index < element_end; e_index++) {
+    unsigned col = edgeToColumn[e_index]; // new col
+    unsigned tcblock_id = col / blockSize_w;
+    unsigned row_local = edgeToRow[e_index] % blockSize_h;
+    unsigned col_local = col % blockSize_w;
+
+	//如果存在， 且元素在residue里，需要按每行residue偏移
+	values_[tcblock_id*blockSize_h*blockSize_w + row_local*blockSize_w + col_local] = __float2half(1.0);
+	
+	sparse_AToB[tcblock_id * blockSize_w + col_local] = edgeList[e_index];
+    // pos_ptr[tcblock_id]++;
+  }
+}
+
+void generate_tcoffset_id_atob_cuda_fs_ori(int *nodePointer, int *rowwindow_offset,
+                                    int *edgeToColumn, int *edgeToRow,
+                                    int *edgeList, half *values, int *sparseatob,
+                                    int max_block, int num_nodes,
+                                    int blockSize_h, int blockSize_w,
+                                    int num_row_windows) {
+  int block_size = 1;
+  int window_count = num_row_windows;
+  generate_tcoffset_id_atob_fs_ori<<<window_count, block_size>>>(
+      nodePointer, rowwindow_offset, edgeToColumn, edgeToRow, edgeList,
+    values, sparseatob, max_block, num_nodes,
+      blockSize_h, blockSize_w, num_row_windows);
+  cudaError_t error = cudaGetLastError();
+  if (error != cudaSuccess) {
+    printf("CUDA error: %s\n", cudaGetErrorString(error));
+    exit(-1);
+  }
+}
+
+
+__global__ void generate_tcoffset_id_atob_fs_balance(
+    int *nodePointer, int *rowwindow_offset, int *vectorwindow_offset,
+    int *edgeToColumn, int *edgeToRow,
+    int *edgeList, half *values,
+    int *sparseatob, int max_block, int num_nodes, long blockSize_h,
+    int blockSize_w, int num_row_windows,
+    int *b_rowwindow_offset_d, int *b_window_row_d, int *b_atomic_d, int part) {
+
+  int tid = threadIdx.x;
+  int winId = blockIdx.x; // each warp one window
+  int group_offset = rowwindow_offset[winId];
+
+  b_rowwindow_offset_d += group_offset;
+  b_window_row_d += group_offset;
+  b_atomic_d += group_offset;
+  unsigned vector_start = vectorwindow_offset[winId];
+  unsigned vector_end = vectorwindow_offset[min(winId + 1, num_row_windows)];
+  unsigned num_vector = vector_end - vector_start;
+  if (num_vector == 0) {
+    return;
+  }
+  //根据part划分
+  int block_num = (num_vector + blockSize_w - 1) / blockSize_w;
+  int group_num = (block_num + part - 1) / part;
+  if(group_num==1){
+    b_rowwindow_offset_d[0] = num_vector;
+    b_window_row_d[0] = winId;
+    b_atomic_d[0] = 0;
+  }
+  else{
+    for(int i=0; i<(group_num-1); i++)
+    {      
+      b_rowwindow_offset_d[0] = part*blockSize_w;
+      b_window_row_d[0] = winId;
+      b_atomic_d[0] = 1;
+
+      b_rowwindow_offset_d++;
+      b_window_row_d++;
+      b_atomic_d++;
+    }
+
+    b_rowwindow_offset_d[0] = num_vector % (part*blockSize_w);
+    b_window_row_d[0] = winId;
+    b_atomic_d[0] = 1;
+  }
+
+  unsigned element_start = nodePointer[winId * blockSize_h];
+  unsigned element_end =
+      nodePointer[min(int(winId * blockSize_h + blockSize_h), num_nodes)];
+  unsigned num_window_edges = element_end - element_start;
+  if (num_window_edges == 0) {
+    return;
+  }
+  //开始看每个非零元在block内的偏移了
+//   auto tileid = tcblocktile_id + element_start;
+  auto values_ = values + vector_start*blockSize_h;
+  auto sparse_AToB = sparseatob + vector_start;
+  for (unsigned e_index = element_start; e_index < element_end; e_index++) {
+    unsigned col = edgeToColumn[e_index]; // new col
+    unsigned tcblock_id = col / blockSize_w;
+    unsigned row_local = edgeToRow[e_index] % blockSize_h;
+    unsigned col_local = col % blockSize_w;
+
+	//如果存在， 且元素在residue里，需要按每行residue偏移
+	int residue = num_vector % blockSize_w;
+	if(residue>0 & col>=(num_vector-residue)){
+		values_[tcblock_id*blockSize_h*blockSize_w + row_local*residue + col_local] = __float2half(1.0);
+	}else{
+		values_[tcblock_id*blockSize_h*blockSize_w + row_local*blockSize_w + col_local] = __float2half(1.0);
+	}
+	
+	sparse_AToB[tcblock_id * blockSize_w + col_local] = edgeList[e_index];
+    // pos_ptr[tcblock_id]++;
+  }
+}
+
+void generate_tcoffset_id_atob_cuda_fs_balance(int *nodePointer, int *rowwindow_offset, int *vectorwindow_offset,
+                                    int *edgeToColumn, int *edgeToRow,
+                                    int *edgeList, half *values, int *sparseatob,
+                                    int max_block, int num_nodes,
+                                    int blockSize_h, int blockSize_w,
+                                    int num_row_windows,
+                                    int *b_rowwindow_offset_d, int *b_window_row_d, int *b_atomic_d, int part) {
+  int block_size = 1;
+  int window_count = num_row_windows;
+  generate_tcoffset_id_atob_fs_balance<<<window_count, block_size>>>(
+      nodePointer, rowwindow_offset, vectorwindow_offset,
+      edgeToColumn, edgeToRow, edgeList,
+    values, sparseatob, max_block, num_nodes,
+      blockSize_h, blockSize_w, num_row_windows,
+    b_rowwindow_offset_d, b_window_row_d, b_atomic_d, part);
   cudaError_t error = cudaGetLastError();
   if (error != cudaSuccess) {
     printf("CUDA error: %s\n", cudaGetErrorString(error));
@@ -552,18 +788,16 @@ seg_sort_dequ_fs(int *seg, int *edgeLists, int *nodepointer, int *edgetocol,
               int num_nodes, int num_edges, int rowwindow_num) {
 	thrust::device_ptr<int> Seg = thrust::device_pointer_cast(seg);
 	thrust::device_vector<int> deviceSeg(Seg, Seg + num_edges);
+  cudaFree(seg);
+
 	thrust::device_ptr<int> EL = thrust::device_pointer_cast(edgeLists);
 	thrust::device_vector<int> deviceEL(EL, EL + num_edges);
 	auto begin = thrust::make_zip_iterator(
 		thrust::make_tuple(deviceSeg.begin(), deviceEL.begin()));
 	auto end = thrust::make_zip_iterator(
 		thrust::make_tuple(deviceSeg.end(), deviceEL.end()));
-	// // 打印排序前的前20个值
-	// print_first_20(deviceSeg, deviceEL, "排序前");
-	// 1. 对所有非零元素按照所属于的window id排序
+
 	thrust::sort(thrust::device, begin, end);
-	// 打印排序前的前20个值
-	print_first_20(deviceSeg, deviceEL, "排序后");
 
 	// thrust::device_ptr<int> Counts = thrust::device_pointer_cast(edgeLists);
 	// thrust::device_vector<int> deviceCounts(Counts, Counts + num_edges);
@@ -578,8 +812,10 @@ seg_sort_dequ_fs(int *seg, int *edgeLists, int *nodepointer, int *edgetocol,
 		thrust::device_pointer_cast(rowwindow_offset + 1);
 	thrust::device_vector<int> blockpartition_vector(
 		blockpartition_ptr, blockpartition_ptr + rowwindow_num);
+  cudaFree(blockpartition);
 	thrust::inclusive_scan(blockpartition_vector.begin(),
 							blockpartition_vector.end(), rowwindow_offset_ptr);
+  
 	auto options_gpu =
 		torch::TensorOptions().dtype(torch::kInt32).device(torch::kCUDA);
 	auto options_gpu_unit8 =
@@ -590,40 +826,251 @@ seg_sort_dequ_fs(int *seg, int *edgeLists, int *nodepointer, int *edgetocol,
 
 	thrust::device_ptr<int> vnum_ptr = thrust::device_pointer_cast(vector_num);
 	thrust::host_vector<int> vnum_vector(vnum_ptr, vnum_ptr + 1);
-	int vector_counter = vnum_vector[0];
-	// printf("*******: %d\n",vector_counter);
-
-	//   auto tcblock_rowid_tensor = torch::zeros({block_counter}, options_gpu);
-	//   auto tcblock_rowid = tcblock_rowid_tensor.data<int>();
-
-	//负载均衡
-	//   generate_tcblock_rowid_cuda(rowwindow_offset, tcblock_rowid, rowwindow_num);
-	//   auto max_element =
-	//       thrust::max_element(thrust::device, blockpartition_vector.begin(),
-	//                           blockpartition_vector.end());
-	//   int max_blocks = (*max_element + blockSize_w) / blockSize_w;
+	long vector_counter = vnum_vector[0];
 
   	//声明最终的数据结构
-	auto values_tensor = torch::zeros({vector_counter*blockSize_h}, torch::kCUDA).to(torch::kF32);
-	//   auto tcblocktile_id_tensor = torch::zeros({num_edges}, options_gpu_unit8);
-	//   auto tcblock_offset_tensor = torch::zeros({block_counter + 1}, options_gpu);
-	auto sparse_AToX_index_tensor =
-		torch::zeros({vector_counter}, options_gpu);
-	//   auto tcblock_offset = tcblock_offset_tensor.data<int>();
+  auto values_tensor = torch::zeros({vector_counter*blockSize_h}, torch::kFloat16).to(torch::kCPU);
+  auto sparse_AToX_index_tensor = torch::zeros({vector_counter}, torch::kInt32).to(torch::kCPU);
+
+	auto values = reinterpret_cast<half *>(values_tensor.data<at::Half>());
 	auto sparse_AToX_index = sparse_AToX_index_tensor.data<int>();
-	//   auto tcblocktile_id = tcblocktile_id_tensor.data<uint8_t>();
-	auto values = values_tensor.data<float>();
+
+  half *values_d;
+  int *sparse_AToX_index_d;
+
+  cudaMalloc(&values_d, (values_tensor.size(0)) * sizeof(half));
+  cudaMalloc(&sparse_AToX_index_d, (sparse_AToX_index_tensor.size(0)) * sizeof(int));
+
+  cudaMemcpy(values_d, values , (values_tensor.size(0)) * sizeof(half), cudaMemcpyHostToDevice);
+  // cudaMemcpy(sparse_AToX_index_d, sparse_AToX_index , (sparse_AToX_index_tensor.size(0)) * sizeof(int), cudaMemcpyHostToDevice);
+
 	generate_tcoffset_id_atob_cuda_fs(
 		nodepointer, rowwindow_offset, edgetocol, edgetorow, edgeLists,
-		values, sparse_AToX_index, 1,
+		values_d, sparse_AToX_index_d, 1,
 		num_nodes, blockSize_h, blockSize_w, rowwindow_num);
-	//   thrust::device_ptr<int> tcblock_offset_ptr =
-	//       thrust::device_pointer_cast(tcblock_offset);
-	//   thrust::inclusive_scan(tcblock_offset_ptr,
-	//                          tcblock_offset_ptr + block_counter + 1,
-	//                          tcblock_offset_ptr);
+
+  cudaMemcpy(values, values_d, vector_counter*blockSize_h * sizeof(half), cudaMemcpyDeviceToHost);
+  cudaMemcpy(sparse_AToX_index, sparse_AToX_index_d, vector_counter * sizeof(int), cudaMemcpyDeviceToHost);
+
+
+    cudaFree(values_d);
+    cudaFree(sparse_AToX_index_d);
+
 	return std::make_tuple(
 						sparse_AToX_index_tensor,
 							block_counter,values_tensor);
 }
 
+
+
+
+/*main function*/
+std::tuple<torch::Tensor, int, torch::Tensor>
+seg_sort_dequ_fs_ori(int *seg, int *edgeLists, int *nodepointer, int *edgetocol,
+              int *edgetorow, int *blockpartition, int *block_num, int *vector_num,
+              int *rowwindow_offset, int blockSize_h, int blockSize_w,
+              int num_nodes, int num_edges, int rowwindow_num) {
+	thrust::device_ptr<int> Seg = thrust::device_pointer_cast(seg);
+	thrust::device_vector<int> deviceSeg(Seg, Seg + num_edges);
+  cudaFree(seg);
+
+	thrust::device_ptr<int> EL = thrust::device_pointer_cast(edgeLists);
+	thrust::device_vector<int> deviceEL(EL, EL + num_edges);
+	auto begin = thrust::make_zip_iterator(
+		thrust::make_tuple(deviceSeg.begin(), deviceEL.begin()));
+	auto end = thrust::make_zip_iterator(
+		thrust::make_tuple(deviceSeg.end(), deviceEL.end()));
+
+	thrust::sort(thrust::device, begin, end);
+
+	// thrust::device_ptr<int> Counts = thrust::device_pointer_cast(edgeLists);
+	// thrust::device_vector<int> deviceCounts(Counts, Counts + num_edges);
+	generate_edgetocolumn_cuda_fs_ori(
+		nodepointer, edgeLists, thrust::raw_pointer_cast(&deviceEL[0]),
+		edgetocol,
+		blockpartition, block_num, vector_num, blockSize_h, blockSize_w, num_nodes);
+
+	thrust::device_ptr<int> blockpartition_ptr =
+		thrust::device_pointer_cast(blockpartition);
+	thrust::device_ptr<int> rowwindow_offset_ptr =
+		thrust::device_pointer_cast(rowwindow_offset + 1);
+	thrust::device_vector<int> blockpartition_vector(
+		blockpartition_ptr, blockpartition_ptr + rowwindow_num);
+  cudaFree(blockpartition);
+	thrust::inclusive_scan(blockpartition_vector.begin(),
+							blockpartition_vector.end(), rowwindow_offset_ptr);
+  
+	auto options_gpu =
+		torch::TensorOptions().dtype(torch::kInt32).device(torch::kCUDA);
+	auto options_gpu_unit8 =
+		torch::TensorOptions().dtype(torch::kUInt8).device(torch::kCUDA);
+	thrust::device_ptr<int> bnum_ptr = thrust::device_pointer_cast(block_num);
+	thrust::host_vector<int> bnum_vector(bnum_ptr, bnum_ptr + 1);
+	long block_counter = bnum_vector[0];
+
+	thrust::device_ptr<int> vnum_ptr = thrust::device_pointer_cast(vector_num);
+	thrust::host_vector<int> vnum_vector(vnum_ptr, vnum_ptr + 1);
+	int vector_counter = vnum_vector[0];
+
+  	//声明最终的数据结构
+  auto values_tensor = torch::zeros({block_counter*blockSize_h*blockSize_w}, torch::kFloat16).to(torch::kCPU);
+  auto sparse_AToX_index_tensor = torch::full({block_counter * blockSize_w}, -1, torch::kInt32).to(torch::kCPU);
+
+	auto values = reinterpret_cast<half *>(values_tensor.data<at::Half>());
+	auto sparse_AToX_index = sparse_AToX_index_tensor.data<int>();
+
+  half *values_d;
+  int *sparse_AToX_index_d;
+
+  cudaMalloc(&values_d, (values_tensor.size(0)) * sizeof(half));
+  cudaMalloc(&sparse_AToX_index_d, (sparse_AToX_index_tensor.size(0)) * sizeof(int));
+
+  cudaMemcpy(values_d, values , (values_tensor.size(0)) * sizeof(half), cudaMemcpyHostToDevice);
+  cudaMemcpy(sparse_AToX_index_d, sparse_AToX_index , (sparse_AToX_index_tensor.size(0)) * sizeof(int), cudaMemcpyHostToDevice);
+
+
+	generate_tcoffset_id_atob_cuda_fs_ori(
+		nodepointer, rowwindow_offset, edgetocol, edgetorow, edgeLists,
+		values_d, sparse_AToX_index_d, 1,
+		num_nodes, blockSize_h, blockSize_w, rowwindow_num);
+
+  cudaMemcpy(values, values_d, vector_counter*blockSize_h * sizeof(half), cudaMemcpyDeviceToHost);
+  cudaMemcpy(sparse_AToX_index, sparse_AToX_index_d, vector_counter * sizeof(int), cudaMemcpyDeviceToHost);
+
+
+    cudaFree(values_d);
+    cudaFree(sparse_AToX_index_d);
+
+	return std::make_tuple(
+						sparse_AToX_index_tensor,
+							block_counter,values_tensor);
+}
+
+
+
+std::tuple<torch::Tensor, int, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>
+seg_sort_dequ_fs_balance(int *seg, int *edgeLists, int *nodepointer, int *edgetocol,
+              int *edgetorow, int *blockpartition, int *vectorPartition, int *block_num, int *vector_num,
+              int *rowwindow_offset, int * vectorwindow_offset, 
+              int blockSize_h, int blockSize_w,
+              int num_nodes, int num_edges, int rowwindow_num, int part) {
+	thrust::device_ptr<int> Seg = thrust::device_pointer_cast(seg);
+	thrust::device_vector<int> deviceSeg(Seg, Seg + num_edges);
+  cudaFree(seg);
+
+	thrust::device_ptr<int> EL = thrust::device_pointer_cast(edgeLists);
+	thrust::device_vector<int> deviceEL(EL, EL + num_edges);
+	auto begin = thrust::make_zip_iterator(
+		thrust::make_tuple(deviceSeg.begin(), deviceEL.begin()));
+	auto end = thrust::make_zip_iterator(
+		thrust::make_tuple(deviceSeg.end(), deviceEL.end()));
+
+	thrust::sort(thrust::device, begin, end);
+
+  //确定每个window需要几个group,且返回后需要累加
+  //确定每个window中的vector个数，且返回后不需要累加
+	generate_edgetocolumn_cuda_fs_balance(
+		nodepointer, edgeLists, thrust::raw_pointer_cast(&deviceEL[0]),
+		edgetocol,
+		blockpartition, vectorPartition, block_num, vector_num, blockSize_h, blockSize_w, num_nodes, part);
+
+	thrust::device_ptr<int> blockpartition_ptr =
+		thrust::device_pointer_cast(blockpartition);
+	thrust::device_ptr<int> rowwindow_offset_ptr =
+		thrust::device_pointer_cast(rowwindow_offset + 1);
+	thrust::device_vector<int> blockpartition_vector(
+		blockpartition_ptr, blockpartition_ptr + rowwindow_num);
+  cudaFree(blockpartition);
+	thrust::inclusive_scan(blockpartition_vector.begin(),
+							blockpartition_vector.end(), rowwindow_offset_ptr);
+
+	thrust::device_ptr<int> vectorpartition_ptr =
+		thrust::device_pointer_cast(vectorPartition);
+	thrust::device_ptr<int> vectorwindow_offset_ptr =
+		thrust::device_pointer_cast(vectorwindow_offset + 1);
+	thrust::device_vector<int> vectorpartition_vector(
+		vectorpartition_ptr, vectorpartition_ptr + rowwindow_num);
+  cudaFree(vectorPartition);
+	thrust::inclusive_scan(vectorpartition_vector.begin(),
+							vectorpartition_vector.end(), vectorwindow_offset_ptr);
+  
+	auto options_gpu =
+		torch::TensorOptions().dtype(torch::kInt32).device(torch::kCUDA);
+	auto options_gpu_unit8 =
+		torch::TensorOptions().dtype(torch::kUInt8).device(torch::kCUDA);
+	thrust::device_ptr<int> bnum_ptr = thrust::device_pointer_cast(block_num);
+	thrust::host_vector<int> bnum_vector(bnum_ptr, bnum_ptr + 1);
+	int block_counter = bnum_vector[0];
+  // printf("%d\n", block_counter);
+
+	thrust::device_ptr<int> vnum_ptr = thrust::device_pointer_cast(vector_num);
+	thrust::host_vector<int> vnum_vector(vnum_ptr, vnum_ptr + 1);
+	long vector_counter = vnum_vector[0];
+
+  	//声明最终的数据结构
+  auto values_tensor = torch::zeros({vector_counter*blockSize_h}, torch::kFloat16).to(torch::kCPU);
+  auto sparse_AToX_index_tensor = torch::zeros({vector_counter}, torch::kInt32).to(torch::kCPU);
+  //根据block_counter确定b_rowwindow_offset_tensor， b_window_rowTensor， b_atomicTensor
+  // auto b_rowwindow_offsetTensor = torch::zeros({block_counter+1}, torch::kInt32).to(torch::kCPU);
+  auto b_window_rowTensor = torch::zeros({block_counter}, torch::kInt32).to(torch::kCPU);
+  auto b_atomicTensor = torch::zeros({block_counter}, torch::kInt32).to(torch::kCPU);
+
+	auto values = reinterpret_cast<half *>(values_tensor.data<at::Half>());
+	auto sparse_AToX_index = sparse_AToX_index_tensor.data<int>();
+	// auto b_rowwindow_offset = b_rowwindow_offsetTensor.data<int>();
+	auto b_window_row = b_window_rowTensor.data<int>();
+	auto b_atomic = b_atomicTensor.data<int>();
+
+  half *values_d;
+  int *sparse_AToX_index_d, *b_rowwindow_offset_d, *b_window_row_d, *b_atomic_d;
+
+  cudaMalloc(&values_d, (values_tensor.size(0)) * sizeof(half));
+  cudaMalloc(&sparse_AToX_index_d, (sparse_AToX_index_tensor.size(0)) * sizeof(int));
+  cudaMalloc(&b_rowwindow_offset_d, (block_counter) * sizeof(int));
+  cudaMalloc(&b_window_row_d, block_counter * sizeof(int));
+  cudaMalloc(&b_atomic_d, block_counter * sizeof(int));
+
+  cudaMemcpy(values_d, values , (values_tensor.size(0)) * sizeof(half), cudaMemcpyHostToDevice);
+
+
+	generate_tcoffset_id_atob_cuda_fs_balance(
+		nodepointer, rowwindow_offset, vectorwindow_offset, edgetocol, edgetorow, edgeLists,
+		values_d, sparse_AToX_index_d, 1,
+		num_nodes, blockSize_h, blockSize_w, rowwindow_num,
+    b_rowwindow_offset_d, b_window_row_d, b_atomic_d, part);
+
+  cudaMemcpy(values, values_d, vector_counter*blockSize_h * sizeof(half), cudaMemcpyDeviceToHost);
+  cudaMemcpy(sparse_AToX_index, sparse_AToX_index_d, vector_counter * sizeof(int), cudaMemcpyDeviceToHost);
+  cudaMemcpy(b_window_row, b_window_row_d, block_counter * sizeof(int), cudaMemcpyDeviceToHost);
+  cudaMemcpy(b_atomic, b_atomic_d, block_counter * sizeof(int), cudaMemcpyDeviceToHost);
+
+  cudaFree(values_d);
+  cudaFree(sparse_AToX_index_d);
+  cudaFree(b_window_row_d);
+  cudaFree(b_atomic_d);
+
+  //累加
+  auto b_rowwindow_offset_outTensor = torch::zeros({block_counter+1}, torch::kInt32).to(torch::kCPU);
+  auto b_rowwindow_offset_out = b_rowwindow_offset_outTensor.data<int>();
+  int *b_rowwindow_offset_out_d;
+  cudaMalloc(&b_rowwindow_offset_out_d, (block_counter+1) * sizeof(int));
+  cudaMemset(b_rowwindow_offset_out_d, 0, (block_counter + 1) * sizeof(int));
+
+	thrust::device_ptr<int> b_rowwindow_offset_d_ptr =
+		thrust::device_pointer_cast(b_rowwindow_offset_d);
+	thrust::device_ptr<int> b_rowwindow_offset_out_d_ptr =
+		thrust::device_pointer_cast(b_rowwindow_offset_out_d + 1);
+	thrust::device_vector<int> b_rowwindow_offset_d_vector(
+		b_rowwindow_offset_d_ptr, b_rowwindow_offset_d_ptr + block_counter);
+	thrust::inclusive_scan(b_rowwindow_offset_d_vector.begin(),
+							b_rowwindow_offset_d_vector.end(), b_rowwindow_offset_out_d_ptr);
+              
+  cudaMemcpy(b_rowwindow_offset_out, b_rowwindow_offset_out_d, (block_counter+1) * sizeof(int), cudaMemcpyDeviceToHost);
+  cudaFree(b_rowwindow_offset_d);
+  cudaFree(b_rowwindow_offset_out_d);
+
+
+	return std::make_tuple(
+						sparse_AToX_index_tensor,
+							block_counter,values_tensor, b_rowwindow_offset_outTensor, b_window_rowTensor, b_atomicTensor);
+}
