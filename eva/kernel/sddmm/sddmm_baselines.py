@@ -67,7 +67,7 @@ if __name__ == "__main__":
         # res_temp.append(spmm_cusparse)
         
         # tcgnn
-        if row.iloc[2] < 5000000:
+        if row.iloc[2] < 1000000:
             spmm_tcgnn = tcgnn_test(row.iloc[0], dimN, epoches, data_path)
             res_temp.append(spmm_tcgnn)
         else:

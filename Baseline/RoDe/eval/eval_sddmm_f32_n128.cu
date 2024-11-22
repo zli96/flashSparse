@@ -187,7 +187,7 @@ int main(int argc,char ** argv) {
     cudaDeviceSynchronize();
 
 
-    if(c_sm.Nonzeros() >= 5000000){
+    if(c_sm.Nonzeros() >= 1000000){
             tot_ms = 10000000;
     }
 
