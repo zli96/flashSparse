@@ -1,6 +1,6 @@
-## 1. Download this project.
+## 1. Clone this project.
 ```
-unzip FlashSparse.zip
+git clone --recursive git@github.com:anonymous2024111/anonymous.git
 ```
 + **Requirements**: 
 > + `Ubuntu 16.04+`
