@@ -43,7 +43,7 @@ class dataSet_fp16(torch.nn.Module):
         self.row_pointers, \
         self.column_index, \
         self.degrees, \
-        self.t_window_rowTensor, _, _ = FS_Block_gpu.preprocess_gpu_fs_balance(self.row_pointers, self.column_index, window, wide, partSize)
+        self.t_window_rowTensor, _, _ = FS_Block_gpu.preprocess_gpu_fs_balance(self.row_pointers, self.column_index, self.num_nodes, self.num_edges, window, wide, partSize)
         
         max_vectors = torch.max(self.row_pointers[1:]- self.row_pointers[:-1])
         if max_vectors%wide > 0 :

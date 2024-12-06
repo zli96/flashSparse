@@ -124,6 +124,7 @@ void fill_window_cuda(	int* edgeToColumn,
 __global__ void spmm_forward_cuda_kernel(
 	const int * __restrict__ nodePointer,		// node pointer.
 	const int *__restrict__ edgeList,			// edge list.
+	const float *__restrict__ value,
 	const int *__restrict__ blockPartition, 	// number of TC_blocks (16x8) in each row_window.
 	const int *__restrict__ edgeToColumn, 		// eid -> col within each row_window.
 	const int *__restrict__ edgeToRow, 		    // eid -> col within each row_window.
@@ -172,84 +173,69 @@ __global__ void sddmm_forward_cuda_kernel(
 // SPMM Foward Pass  (GCN, GraphSAGE)
 //
 ////////////////////////////////////////////
-float spmm_forward_cuda(
-    int * nodePointer,
-    int * edgeList,
-    int * blockPartition, 
-    int * edgeToColumn,
-    int * edgeToRow,
-	int num_nodes,
-	int num_edges,
-	int embedding_dim,
-    float * input,
-	float * output,
-	int bp_size,
-	int epoches
+std::vector<torch::Tensor> spmm_forward_cuda(
+    torch::Tensor nodePointer,
+    torch::Tensor edgeList,
+	torch::Tensor value,
+    torch::Tensor blockPartition, 
+    torch::Tensor edgeToColumn,
+    torch::Tensor edgeToRow,
+              int num_nodes,
+              int num_edges,
+              int embedding_dim,
+    torch::Tensor input
 ) 
 {
-    // auto output = torch::zeros_like(input);
-    // const int num_row_windows = blockPartition.size(0);
-	const int num_row_windows = bp_size;
+    auto output = torch::zeros_like(input);
+    const int num_row_windows = blockPartition.size(0);
     const int WARPperBlock = WPB;
 
+  	int temp = (embedding_dim/128);
+	// printf("%d\n", temp);
+	// if((embedding_dim%128) == 0) temp-=1;
     dim3 grid(num_row_windows, 1, 1);
     dim3 block(WARP_SIZE, WARPperBlock, 1);
-
+    dim3 block2(WARP_SIZE, WARPperBlock*temp, 1);
     const int dimTileNum = (embedding_dim + BLK_H - 1) / BLK_H;
 	const int dynamic_shared_size = dimTileNum * BLK_W * BLK_H * sizeof(float); // dynamic shared memory.
-
-	for(int iter=0; iter<10; ++iter){
-    	spmm_forward_cuda_kernel<<<grid, block, dynamic_shared_size>>>(
-                                                                    nodePointer, 
-                                                                    edgeList,
-                                                                    blockPartition, 
-                                                                    edgeToColumn, 
-                                                                    edgeToRow, 
+	if(embedding_dim>128)
+    spmm_forward_cuda_kernel<<<grid, block2, dynamic_shared_size>>>(
+                                                                    nodePointer.data<int>(), 
+                                                                    edgeList.data<int>(),
+																	value.data<float>(),
+                                                                    blockPartition.data<int>(), 
+                                                                    edgeToColumn.data<int>(), 
+                                                                    edgeToRow.data<int>(), 
                                                                     num_nodes,
                                                                     num_edges,
                                                                     embedding_dim,
-                                                                    input, 
-                                                                    output
+                                                                    input.data<float>(), 
+                                                                    output.data<float>()
                                                                 );
-	}
-	 //测试kernel
-    float spmm_ms_avg = 0.0f;
-    float spmm_ms = 0.0f;
-    cudaEvent_t spmm_start;
-    cudaEvent_t spmm_end;
-    cudaEventCreate(&spmm_start);
-    cudaEventCreate(&spmm_end);
-    cudaEventRecord(spmm_start);
-    for(int iter=0; iter<epoches; ++iter){
-		spmm_forward_cuda_kernel<<<grid, block, dynamic_shared_size>>>(
-															nodePointer, 
-															edgeList,
-															blockPartition, 
-															edgeToColumn, 
-															edgeToRow, 
-															num_nodes,
-															num_edges,
-															embedding_dim,
-															input, 
-															output
-														);
-	}
-	cudaEventRecord(spmm_end);
-    cudaEventSynchronize(spmm_end);
-    cudaEventElapsedTime(&spmm_ms, spmm_start, spmm_end);
-    cudaEventDestroy(spmm_start);
-    cudaEventDestroy(spmm_end);
+	else     spmm_forward_cuda_kernel<<<grid, block, dynamic_shared_size>>>(
+                                                                    nodePointer.data<int>(), 
+                                                                    edgeList.data<int>(),
+																	value.data<float>(),
+                                                                    blockPartition.data<int>(), 
+                                                                    edgeToColumn.data<int>(), 
+                                                                    edgeToRow.data<int>(), 
+                                                                    num_nodes,
+                                                                    num_edges,
+                                                                    embedding_dim,
+                                                                    input.data<float>(), 
+                                                                    output.data<float>()
+                                                                );
+
     // check for error
-    // cudaError_t error = cudaGetLastError();
-    // if(error != cudaSuccess)
-    // {
-    //     // print the CUDA error message and exit
-    //     printf("CUDA error: %s\n", cudaGetErrorString(error));
-    //     exit(-1);
-    // }
-    //计算时间 ms
-    spmm_ms_avg = spmm_ms/(float)epoches;
-    return spmm_ms_avg;
+    cudaError_t error = cudaGetLastError();
+    if(error != cudaSuccess)
+    {
+        // print the CUDA error message and exit
+        printf("CUDA error: %s\n", cudaGetErrorString(error));
+        exit(-1);
+    }
+    
+    return {output};
 }
 
 ////////////////////////////////////////////
@@ -325,8 +311,7 @@ std::vector<torch::Tensor> sddmm_forward_cuda(
               int num_nodes,
               int num_edges,
               int embedding_dim,	    // embedding dimension.
-	torch::Tensor input,				    // input feature matrix.
-	int epoches
+	torch::Tensor input				    // input feature matrix.
 ) 
 {
     auto output = torch::zeros_like(edgeList).to(torch::kFloat);
@@ -336,7 +321,6 @@ std::vector<torch::Tensor> sddmm_forward_cuda(
 	dim3 block(WARP_SIZE, 1, 1);
     // printf("at sddmm_forward_cuda\n");
 
-	for(int iter=0; iter<10; ++iter){
     sddmm_forward_cuda_kernel<<< grid, block>>>(
                                                 nodePointer.data<int>(), 
                                                 edgeList.data<int>(),
@@ -349,44 +333,16 @@ std::vector<torch::Tensor> sddmm_forward_cuda(
                                                 input.data<float>(), 
                                                 output.data<float>()
                                                 );
-	}
-	cudaDeviceSynchronize();
 
-	//测试kernel
-    float spmm_ms_avg = 0.0f;
-    float spmm_ms = 0.0f;
-    cudaEvent_t spmm_start;
-    cudaEvent_t spmm_end;
-    cudaEventCreate(&spmm_start);
-    cudaEventCreate(&spmm_end);
-    cudaEventRecord(spmm_start);
-    for(int iter=0; iter<epoches; ++iter){
-
-    sddmm_forward_cuda_kernel<<< grid, block>>>(
-                                                nodePointer.data<int>(), 
-                                                edgeList.data<int>(),
-                                                blockPartition.data<int>(), 
-                                                edgeToColumn.data<int>(), 
-                                                edgeToRow.data<int>(), 
-                                                num_nodes,
-                                                num_edges,
-                                                embedding_dim,
-                                                input.data<float>(), 
-                                                output.data<float>()
-                                                );
-									
-
-
-	}
-	cudaEventRecord(spmm_end);
-    cudaEventSynchronize(spmm_end);
-    cudaEventElapsedTime(&spmm_ms, spmm_start, spmm_end);
-    cudaEventDestroy(spmm_start);
-    cudaEventDestroy(spmm_end);
-
-    //计算时间 ms
-    spmm_ms_avg = spmm_ms/(float)epoches;
-    return {output, torch::tensor(spmm_ms_avg)};
+    // check for error
+    cudaError_t error = cudaGetLastError();
+    if(error != cudaSuccess) {
+        // print the CUDA error message and exit
+        printf("CUDA error: %s\n", cudaGetErrorString(error));
+        exit(-1);
+    }
+    
+    return {output};
 }
 
 
@@ -399,6 +355,7 @@ std::vector<torch::Tensor> sddmm_forward_cuda(
 __global__ void spmm_forward_cuda_kernel(
 	const int * __restrict__ nodePointer,		// node pointer.
 	const int *__restrict__ edgeList,			// edge list.
+	const float *__restrict__ value,
 	const int *__restrict__ blockPartition, 	// number of TC_blocks (16x8) in each row_window.
 	const int *__restrict__ edgeToColumn, 		// eid -> col within each row_window.
 	const int *__restrict__ edgeToRow, 		    // eid -> col within each row_window.
@@ -465,7 +422,7 @@ __global__ void spmm_forward_cuda_kernel(
 			if (i * BLK_W <= col && col < (i + 1) * BLK_W){			// if the edge in the current TC_block frame of column.
 				unsigned row_local = edgeToRow[eIdx] % BLK_H;
 				unsigned col_local = col % BLK_W;
-				sparse_A[row_local * BLK_W + col_local] = 1;		// set the edge of the sparse_A.
+				sparse_A[row_local * BLK_W + col_local] = value[eIdx];		// set the edge of the sparse_A.
 				sparse_AToX_index[col_local] = edgeList[eIdx];		// record the mapping from sparse_A colId to rowId of dense_X.
 			}		
 		}

@@ -95,7 +95,7 @@ class dataSet_fp16_balance(torch.nn.Module):
         self.column_index, \
         self.degrees, \
         self.t_window_rowTensor, \
-        self.t_atomicTensor, self.exe= FS_Block_gpu.preprocess_gpu_fs_balance(self.row_pointers, self.column_index, self.num_nodes, self.num_edges, window, wide)
+        self.t_atomicTensor, self.exe= FS_Block_gpu.preprocess_gpu_fs_balance(self.row_pointers, self.column_index, self.num_nodes, self.num_edges, window, wide, partSize)
 
     def init_embedding(self):
         '''

@@ -15,15 +15,15 @@ def mean(input_list):
 
 current_dir = os.path.dirname(__file__)
 project_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current_dir))))
-base_32 = pd.read_csv(project_dir + '/result/FlashSparse/sddmm/sddmm_fp16_32.csv')
+base_128 = pd.read_csv(project_dir + '/result/FlashSparse/sddmm/sddmm_fp16_128.csv')
 
 num_edges = []
 mtt_16_1_G = []
 mtt_8_1_G = []
 speedup = []
 
-for index, row in base_32.iterrows():
-    compute = row.iloc[2]*32*2
+for index, row in base_128.iterrows():
+    compute = row.iloc[2]*128*2
     temp = row['16_1']
     if temp < 0.001:
         temp = 0.1
@@ -34,14 +34,13 @@ for index, row in base_32.iterrows():
     mtt_8_1_G.append(round((compute/temp2)*1e-6,4))
     speedup.append(round((temp/temp2), 2))
     num_edges.append(int(row.iloc[2]))
-print(len(mtt_8_1_G))
+
 geo = round(stats.gmean(speedup),2)
 max1 = round(max(speedup) ,2 )
 print("geo : ", geo )
 print("max : ",max1 )  
 
 sorted_indices = sorted(range(len(num_edges)), key=lambda k: num_edges[k]) 
-print(len(num_edges))
 mtt_16_1_G = [mtt_16_1_G[i] for i in sorted_indices]
 mtt_8_1_G = [mtt_8_1_G[i] for i in sorted_indices]
 

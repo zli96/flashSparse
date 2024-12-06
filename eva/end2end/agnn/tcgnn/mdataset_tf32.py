@@ -6,7 +6,6 @@ import scipy.sparse as sp
 from scipy.sparse import coo_matrix
 from tcgnn.config import *
 import TCGNN
-import Rabbit
 from scipy.sparse import *
 
 def is_symmetric(sparse_matrix):

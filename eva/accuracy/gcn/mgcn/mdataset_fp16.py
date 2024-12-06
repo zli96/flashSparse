@@ -7,7 +7,7 @@ import torch.nn.functional as F
 import scipy.sparse as sp
 from scipy.sparse import coo_matrix
 
-import MagicsphereMRabbit_cmake
+
 from scipy.sparse import *
 def encode_onehot(labels):
     classes = set(labels)

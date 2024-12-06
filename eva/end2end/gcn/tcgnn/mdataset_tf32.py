@@ -5,8 +5,7 @@ import torch.nn.functional as F
 import scipy.sparse as sp
 from scipy.sparse import coo_matrix
 from tcgnn.config import *
-import TCGNN_v2_cmake
-import Rabbit_cmake
+import TCGNN
 from scipy.sparse import *
 
 def is_symmetric(sparse_matrix):
@@ -43,7 +42,7 @@ class MGCN_dataset(torch.nn.Module):
         self.edgeToRow = torch.zeros(self.num_edges, dtype=torch.int)
         self.blockPartition = torch.zeros(self.num_row_windows, dtype=torch.int)
         
-        TCGNN_v2_cmake.preprocess(self.column_index, self.row_pointers, self.num_nodes,  \
+        TCGNN.preprocess(self.column_index, self.row_pointers, self.num_nodes,  \
                 16,	8, self.blockPartition, self.edgeToColumn, self.edgeToRow)
         
     def init_edges(self):

@@ -17,7 +17,7 @@ project_dir = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
 project_dir = project_dir + '/result/Baseline/spmm'
 for dimN in dimN_list:
        #RoDe, cuSPARSE, Sputnik
-       df1 = pd.read_csv(project_dir + '/rode_spmm_f32_n' + str(dimN) + '.csv')
+       df1 = pd.read_csv(project_dir + '/rode_spmm_f32_n' + str(dimN) + '_res.csv')
        
        # Advisor, geSpMM, TC-GNN
        df2 = pd.read_csv(project_dir + '/base_spmm_f32_n' + str(dimN) + '.csv')

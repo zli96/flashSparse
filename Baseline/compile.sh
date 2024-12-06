@@ -8,7 +8,7 @@ cd build &&
 cmake .. &&
 make &&
 cd .. &&
-
+cd .. &&
 # Insatll GNNAdvisor, GE-SpMM, cuSPARSE, DTC-SpMM, TC-GNN
 rm -rf build &&
 python setup.py install

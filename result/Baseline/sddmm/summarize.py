@@ -17,7 +17,7 @@ project_dir = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
 project_dir = project_dir + '/result/Baseline/sddmm'
 for dimN in dimN_list:
        #RoDe, Sputnik
-       df1 = pd.read_csv(project_dir + '/rode_sddmm_f32_n' + str(dimN) + '.csv')
+       df1 = pd.read_csv(project_dir + '/rode_sddmm_f32_n' + str(dimN) + '_res.csv')
        
        # TC-GNN
        df2 = pd.read_csv(project_dir + '/base_sddmm_f32_n' + str(dimN) + '.csv')

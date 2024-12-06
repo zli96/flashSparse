@@ -23,7 +23,6 @@ total = 0
 
 base_32 = pd.read_csv(project_dir + '/result/Baseline/sddmm/all_baseline_32.csv')
 data_filter = base_32[['dataSet']]
-fs_fp16 = pd.read_csv('/home/shijinliang/module/ppopp25/TMM/eva100/plot/kernel_sddmm/h100/h100_sddmm_fp16_result_32.csv')
 fs_fp16 = pd.read_csv(project_dir + '/result/FlashSparse/sddmm/sddmm_fp16_32.csv')
 fs_fp16_dic = dict()
 for index, row in fs_fp16.iterrows():
@@ -40,7 +39,7 @@ for index, row in base_32.iterrows():
 
 print()
 res = ['<1 & ', '1-1.5 & ', '1.5-2 & ', '$\\geq2$ & ', '{\\bf Mean} & ', '{\\bf Max} & ']
-with open('/home/shijinliang/module/ppopp25/TMM/eva100/plot/kernel_sddmm/output.txt', 'w') as f:
+with open(project_dir + '/eva/plot/kernel_sddmm/table6.txt', 'w') as f:
     string_to_write = 'Speedup & ' + 'TC-GNN & ' + 'RoDe & \n'
     f.write(string_to_write)
 

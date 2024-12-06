@@ -10,7 +10,7 @@ import csv
 import pandas as pd
 import time
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
             
 '''

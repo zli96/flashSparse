@@ -4,7 +4,6 @@ import numpy as np
 import torch.nn.functional as F
 import scipy.sparse as sp
 from scipy.sparse import coo_matrix
-import Rabbit
 
 from scipy.sparse import *
 

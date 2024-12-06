@@ -4,7 +4,7 @@ import sys
 import math
 import time 
 
-import TCGNN_v2_cmake
+import TCGNN
 
 n_heads = 8
 n_output = 8
@@ -41,7 +41,7 @@ class TCGNNFunction(torch.autograd.Function):
         # sys.exit(0)
 
         # SpMM: Neighbor AggreAGNNion.
-        X_prime = TCGNN_v2_cmake.forward(X_prime, inputInfo.row_pointers, inputInfo.column_index, inputInfo.values,inputInfo.blockPartition, inputInfo.edgeToColumn, inputInfo.edgeToRow)[0]
+        X_prime = TCGNN.forward(X_prime, inputInfo.row_pointers, inputInfo.column_index, inputInfo.values,inputInfo.blockPartition, inputInfo.edgeToColumn, inputInfo.edgeToRow)[0]
         # print("==========After Aggreation=========")
         # print(X_prime)
         # sys.exit(0)
@@ -53,7 +53,7 @@ class TCGNNFunction(torch.autograd.Function):
         X, weights = ctx.saved_tensors
         inputInfo = ctx.inputInfo
         # SPMM backward propaAGNNion.
-        d_input_prime = TCGNN_v2_cmake.forward(d_output, inputInfo.row_pointers, inputInfo.column_index, inputInfo.values, inputInfo.blockPartition, inputInfo.edgeToColumn, inputInfo.edgeToRow)[0]
+        d_input_prime = TCGNN.forward(d_output, inputInfo.row_pointers, inputInfo.column_index, inputInfo.values, inputInfo.blockPartition, inputInfo.edgeToColumn, inputInfo.edgeToRow)[0]
 
         # GEMM backward propaAGNNion.
         d_input = torch.mm(d_input_prime, weights.transpose(0,1))
@@ -71,14 +71,14 @@ class TCGNNFunction_AGNN(torch.autograd.Function):
         X_prime = torch.mm(X, weights)
         
         # SDDMM: edge feature computation. 
-        edge_feature = TCGNN_v2_cmake.forward_ef(X_prime, row_pointers, column_index, blockPartition, edgeToColumn, edgeToRow)[0]
+        edge_feature = TCGNN.forward_ef(X_prime, row_pointers, column_index, blockPartition, edgeToColumn, edgeToRow)[0]
 
         # Edge Attention Generation: [n_e, n_head]       
         edge_attentions = torch.mm(edge_feature.unsqueeze(-1), attention_w).transpose(0,1).contiguous()
         # print(edge_attentions.size())
 
         # SpMM_AGNN: Neighbor AggreAGNNion.
-        X_prime = TCGNN_v2_cmake.forward_AGNN(X_prime, row_pointers, column_index, edge_attentions, blockPartition, edgeToColumn, edgeToRow)[0]
+        X_prime = TCGNN.forward_AGNN(X_prime, row_pointers, column_index, edge_attentions, blockPartition, edgeToColumn, edgeToRow)[0]
 
         ctx.save_for_backward(X, weights, row_pointers, column_index, edge_attentions, blockPartition, edgeToColumn, edgeToRow)
         # print("==========After Aggreation=========")
@@ -89,14 +89,14 @@ class TCGNNFunction_AGNN(torch.autograd.Function):
         X, weights, row_pointers, column_index, edge_attentions, blockPartition, edgeToColumn, edgeToRow = ctx.saved_tensors
 
         # SPMM backward propaAGNNion.
-        d_input_prime = TCGNN_v2_cmake.forward_AGNN(d_output, row_pointers, column_index, edge_attentions, blockPartition, edgeToColumn, edgeToRow)[0]
+        d_input_prime = TCGNN.forward_AGNN(d_output, row_pointers, column_index, edge_attentions, blockPartition, edgeToColumn, edgeToRow)[0]
 
         # GEMM backward propaAGNNion.
         d_input = torch.mm(d_input_prime, weights.transpose(0,1))
         d_weights = torch.mm(X.transpose(0,1), d_input_prime)
 
         # attention weight back propaAGNNion.
-        d_attention = TCGNN_v2_cmake.forward_ef(d_output, row_pointers, column_index, blockPartition, edgeToColumn, edgeToRow)[0]
+        d_attention = TCGNN.forward_ef(d_output, row_pointers, column_index, blockPartition, edgeToColumn, edgeToRow)[0]
         # print(d_attention.size())
         d_attention_exp = d_attention[None, :].expand(8, -1)
         # print(d_attention_exp.size())

@@ -22,9 +22,9 @@ data_df = pd.read_csv(project_dir + '/dataset/data_filter.csv')
 file_name = project_dir + '/eva/plot/ablation/memory/memory_sddmm.csv'
 head = ['dataSet', 'num_nodes', 'num_edges', '16_1', '8_1']
 
-with open(file_name, 'w', newline='') as csvfile:
-    csv_writer = csv.writer(csvfile)
-    csv_writer.writerow(head)
+# with open(file_name, 'w', newline='') as csvfile:
+#     csv_writer = csv.writer(csvfile)
+#     csv_writer.writerow(head)
         
 for index, row in data_df.iterrows():
     res_temp = []

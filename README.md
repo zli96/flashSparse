@@ -17,7 +17,7 @@ Conda environments need to be set up on machines with H100 PCIe and RTX4090 GPUs
 ```
 conda create -n env_name python=3.9
 ```
-+ 2.1.3 Install **`Pytorch`** **[(Toturial)](https://pytorch.org/get-started/locally/)**: 
++ 2.1.3 Install **`PyTorch`** **[(Toturial)](https://pytorch.org/get-started/locally/)**: 
 ```
 conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvidia 
 ```
@@ -28,7 +28,7 @@ cd FlashSparse/
 bash comple.sh
 ``` 
 
-## 4. Download datasets.
+## 4. Download datasets. (optional)
 Get the preprocessed datasets (total 515 sparse matrices).
 ```
 cd dataset/
@@ -56,31 +56,31 @@ pip install torch_geometric
 ## 7. Running **FlashSparse** on H100 PCIe and RTX4090 GPUs.
 ### 7.1 SpMM test
 > +  Go to project `eva/kernel/spmm/` directory.
-> + `bash ./test_spmm_shell.sh` to run all SpMM experiments. (ablout 200 minutes)
+> + `bash ./test_spmm_shell.sh` to run all SpMM experiments. (about 200 minutes)
 > + Check the results in `result/FlashSparse/spmm/*.csv`.
 
 ### 7.2 SDDDMM test
 > +  Go to project `eva/kernel/sddmm/` directory.
-> + `bash ./test_sddmm_shell.sh` to run all SpMM experiments. (ablout 100 minutes)
+> + `bash ./test_sddmm_shell.sh` to run all SDDMM experiments. (about 100 minutes)
 > + Check the results in `result/FlashSparse/sddmm/*.csv`.
 
 ### 7.3 GCN and AGNN tests
 > +  Go to project `eva/end2end/gcn/` directory.
 > + `bash eva_gcn_fs.py` to run GCN experiments.
 > + `bash eva_gcn_baseline.py` to run GCN experiments.
-> + Check the results in `result/FlashSparse/gcn/fs_gcn_128.csv`. (ablout 5 minutes)
-> + Check the results in `result/Baseline/agnn/baseline_gcn_128.csv`. (ablout 15 minutes)
+> + Check the results in `result/FlashSparse/gcn/fs_gcn_128.csv`. (about 5 minutes)
+> + Check the results in `result/Baseline/agnn/baseline_gcn_128.csv`. (about 15 minutes)
 
 > +  Go to project `eva/end2end/agnn/` directory.
-> + `bash eva_agnn_fs.py` to run GCN experiments.
-> + `bash eva_agnn_baseline.py` to run GCN experiments.
-> + Check the results in `result/FlashSparse/agnn/fs_agnn_32.csv`. (ablout 5 minutes)
-> + Check the results in `result/Baseline/agnn/baseline_agnn_32.csv`. (ablout 15 minutes)
+> + `bash eva_agnn_fs.py` to run AGNN experiments.
+> + `bash eva_agnn_baseline.py` to run AGNN experiments.
+> + Check the results in `result/FlashSparse/agnn/fs_agnn_32.csv`. (about 5 minutes)
+> + Check the results in `result/Baseline/agnn/baseline_agnn_32.csv`. (about 15 minutes)
 
-## 8. Running **Baselines** on H100 PCIe and RTX4090 GPUs.
+## 8. Running **Baselines** on H100 PCIe and RTX4090 GPUs (Optional).
 ### 8.1 Evaluating **RoDe, Sputnik and cuSPARSE**.
 > +  Go to project `Baseline/RoDe/script/` directory.
-> + `bash download.sh` to download the same 515 matices in a specific format for RoDe.
+> + `bash download.sh` to download the same 515 matices in a specific format for RoDe. (optional)
 > + `bash test_spmm_shell.sh` to run all SpMM experiments. (about 300 minutes)
 > + `bash test_sddmm_shell.sh` to run all SDDMM experiments. (about 300 minutes)
 > + Check the results in `result/Baseline/spmm/rode*.csv` and `result/Baseline/sddmm/rode*.csv`.
@@ -135,7 +135,7 @@ pip install torch_geometric
 ### 9.4 Reproduce the Figure 14. (both on H100 and RTX4090)
 > +  Go to project `eva/plot/ablation/throughput/` directory.
 > + `python plot_spmm.py` and check the figure in `figure14(a).png`.
-> + `python plot_sddmm.py` and check the refiguresult in `figure14(b).pmg`.
+> + `python plot_sddmm.py` and check the figure result in `figure14(b).pmg`.
 (The plotted figure14(a).png and figure14(b).png on H100 correspond to Figure 14(a)(b) in the paper, and on RTX4090 corresponds to Figure 14(c)(d) in the paper.)
 
 ### 9.5 Reproduce the Figure 15. (both on H100 and RTX4090)

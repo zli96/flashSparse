@@ -4,19 +4,9 @@
 #include <cstdlib>
 #include <map>
 
-#include <cuda_runtime.h>
 #include <thrust/sort.h>
 #include <thrust/execution_policy.h>
-#define CHECK_CUDA(x) TORCH_CHECK(x.type().is_cuda(), #x " must be a CUDA tensor")
 
-inline
-cudaError_t checkCuda(cudaError_t result){
-    if (result != cudaSuccess){
-        fprintf(stderr, "CUDA Runtime Error: %s\n", cudaGetErrorString(result));
-        assert(result == cudaSuccess);
-    }
-    return result;
-}
 
 #define min(x, y) (((x) < (y))? (x) : (y))
 
@@ -24,19 +14,17 @@ void fill_edgeToRow_cuda(int* edgeToRow, int *nodePointer, int num_nodes);
 void fill_window_cuda(int* edgeToColumn, int* blockPartition, int* nodePointer,
                       int* edgeList, int blockSize_h, int blockSize_w, int num_nodes);
 
-float spmm_forward_cuda(
-    int * nodePointer,
-    int * edgeList,
-    int * blockPartition, 
-    int * edgeToColumn,
-    int * edgeToRow,
-	int num_nodes,
-	int num_edges,
-	int embedding_dim,
-    float * input,
-	float * output,
-	int bp_size,
-  int epoches
+std::vector<torch::Tensor> spmm_forward_cuda(
+    torch::Tensor nodePointer,
+    torch::Tensor edgeList,
+    torch::Tensor value,
+    torch::Tensor blockPartition, 
+    torch::Tensor edgeToColumn,
+    torch::Tensor edgeToRow,
+              int num_nodes,
+              int num_edges,
+              int embedding_dim,
+    torch::Tensor input
   );
 
 std::vector<torch::Tensor> spmmAGNN_forward_cuda(
@@ -77,72 +65,27 @@ std::vector<torch::Tensor> spmm_forward(
     torch::Tensor input,
     torch::Tensor nodePointer,
     torch::Tensor edgeList,
+    torch::Tensor value,
     torch::Tensor blockPartition, 
     torch::Tensor edgeToColumn,
-    torch::Tensor edgeToRow,
-    int epoches
+    torch::Tensor edgeToRow
 ) {
-  // CHECK_INPUT(input);
-  // CHECK_INPUT(nodePointer);
-  // CHECK_INPUT(edgeList);
-  // CHECK_INPUT(blockPartition);
-  // CHECK_INPUT(edgeToColumn);
-  // CHECK_INPUT(edgeToRow);
-  auto output = torch::zeros_like(input);
-	int bp_size =  blockPartition.size(0);
+  CHECK_INPUT(input);
+  CHECK_INPUT(nodePointer);
+  CHECK_INPUT(edgeList);
+  CHECK_INPUT(value);
+  CHECK_INPUT(blockPartition);
+  CHECK_INPUT(edgeToColumn);
+  CHECK_INPUT(edgeToRow);
+
   int num_nodes = nodePointer.size(0) - 1;
   int num_edges = edgeList.size(0);
   int embedding_dim = input.size(1);
-  
-  // tensor转成指针
-  float * input_ = input.data<float>(); 
-  float * output_ = output.data<float>(); 
-  int * nodePointer_ = nodePointer.data<int>();
-  int * edgeList_ = edgeList.data<int>();
-  int * blockPartition_ = blockPartition.data<int>();
-  int * edgeToColumn_ = edgeToColumn.data<int>();
-  int * edgeToRow_ = edgeToRow.data<int>();
 
-  // 拷贝数据到GPU
-  int *d_nodePointer, *d_edgeList, * d_blockPartition, *d_edgeToColumn, *d_edgeToRow;
-  float *d_input; 
-	float *d_output;
-
-  checkCuda(cudaMalloc(&d_nodePointer, (nodePointer.size(0)) * sizeof(int)));
-  checkCuda(cudaMalloc(&d_edgeList, (edgeList.size(0)) * sizeof(int)));
-  checkCuda(cudaMalloc(&d_blockPartition, (blockPartition.size(0)) * sizeof(int)));
-  checkCuda(cudaMalloc(&d_edgeToColumn, (edgeToColumn.size(0)) * sizeof(int)));
-  checkCuda(cudaMalloc(&d_edgeToRow, (edgeToRow.size(0)) * sizeof(int)));
-  checkCuda(cudaMalloc(&d_input, (input.size(0)*input.size(1)) * sizeof(float)));
-  checkCuda(cudaMalloc(&d_output, (input.size(0)*input.size(1)) * sizeof(float)));
-
-  checkCuda(cudaMemcpy(d_nodePointer, nodePointer_ , (nodePointer.size(0)) * sizeof(int), cudaMemcpyHostToDevice));
-  checkCuda(cudaMemcpy(d_edgeList, edgeList_, (edgeList.size(0)) * sizeof(int), cudaMemcpyHostToDevice));
-  checkCuda(cudaMemcpy(d_blockPartition, blockPartition_,(blockPartition.size(0)) * sizeof(int), cudaMemcpyHostToDevice));
-  checkCuda(cudaMemcpy(d_edgeToColumn, edgeToColumn_,(edgeToColumn.size(0)) * sizeof(int), cudaMemcpyHostToDevice));
-  checkCuda(cudaMemcpy(d_edgeToRow, edgeToRow_, (edgeToRow.size(0)) * sizeof(int), cudaMemcpyHostToDevice));
-  checkCuda(cudaMemcpy(d_input, input_, (input.size(0)*input.size(1)) * sizeof(float), cudaMemcpyHostToDevice));
-
-  
-  float spmm_ms_avg =  spmm_forward_cuda(d_nodePointer, d_edgeList, 
-                            d_blockPartition, d_edgeToColumn, d_edgeToRow, 
+  return spmm_forward_cuda(nodePointer, edgeList, value,
+                            blockPartition, edgeToColumn, edgeToRow, 
                             num_nodes, num_edges, embedding_dim,
-                            d_input, d_output, bp_size, epoches);
-  
-  checkCuda(cudaMemcpy(output_, d_output, (input.size(0)*input.size(1)) * sizeof(float), cudaMemcpyDeviceToHost));
-    //   for(int i=0;i<10;i++){
-    //     printf("%f ", __half2float(output_value_cuda[i]));
-    //     printf("\n");
-    // }
-    cudaFree(d_nodePointer);
-    cudaFree(d_edgeList);
-    cudaFree(d_blockPartition);
-    cudaFree(d_edgeToColumn);
-    cudaFree(d_edgeToRow);
-    cudaFree(d_input);
-    cudaFree(d_output);
-    // delete output_value_cuda;
-    return {output, torch::tensor(spmm_ms_avg)};
+                            input);
 }
 
 ////////////////////////////////////////////
