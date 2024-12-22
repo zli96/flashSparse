@@ -66,14 +66,14 @@ pip install torch_geometric
 
 ### 7.3 GCN and AGNN tests
 > +  Go to project `eva/end2end/gcn/` directory.
-> + `bash eva_gcn_fs.py` to run GCN experiments.
-> + `bash eva_gcn_baseline.py` to run GCN experiments.
+> + `python eva_gcn_fs.py` to run GCN experiments.
+> + `python eva_gcn_baseline.py` to run GCN experiments.
 > + Check the results in `result/FlashSparse/gcn/fs_gcn_128.csv`. (about 5 minutes)
 > + Check the results in `result/Baseline/agnn/baseline_gcn_128.csv`. (about 15 minutes)
 
 > +  Go to project `eva/end2end/agnn/` directory.
-> + `bash eva_agnn_fs.py` to run AGNN experiments.
-> + `bash eva_agnn_baseline.py` to run AGNN experiments.
+> + `python eva_agnn_fs.py` to run AGNN experiments.
+> + `python eva_agnn_baseline.py` to run AGNN experiments.
 > + Check the results in `result/FlashSparse/agnn/fs_agnn_32.csv`. (about 5 minutes)
 > + Check the results in `result/Baseline/agnn/baseline_agnn_32.csv`. (about 15 minutes)
 
