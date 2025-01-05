@@ -59,7 +59,7 @@ pip install torch_geometric
 > + `bash ./test_spmm_shell.sh` to run all SpMM experiments. (about 200 minutes)
 > + Check the results in `result/FlashSparse/spmm/*.csv`.
 
-### 7.2 SDDDMM test
+### 7.2 SDDMM test
 > +  Go to project `eva/kernel/sddmm/` directory.
 > + `bash ./test_sddmm_shell.sh` to run all SDDMM experiments. (about 100 minutes)
 > + Check the results in `result/FlashSparse/sddmm/*.csv`.
@@ -135,7 +135,7 @@ pip install torch_geometric
 ### 9.4 Reproduce the Figure 14. (both on H100 and RTX4090)
 > +  Go to project `eva/plot/ablation/throughput/` directory.
 > + `python plot_spmm.py` and check the figure in `figure14(a).png`.
-> + `python plot_sddmm.py` and check the figure result in `figure14(b).pmg`.
+> + `python plot_sddmm.py` and check the figure result in `figure14(b).png`.
 (The plotted figure14(a).png and figure14(b).png on H100 correspond to Figure 14(a)(b) in the paper, and on RTX4090 corresponds to Figure 14(c)(d) in the paper.)
 
 ### 9.5 Reproduce the Figure 15. (both on H100 and RTX4090)
