@@ -112,15 +112,15 @@ float spmm_forward_cuda_fp16(
     if(n1%64==0) grid_x-=1;
     dim3 grid_dim(grid_x, 200 ,((dimM/200)+1));
     dim3 block_dim(128, 1, 1);
-    for(int iter=0; iter<10; ++iter){
-        spmm_forward_cuda_kernel_fp16<64><<<grid_dim, block_dim>>>(
-            row_offsets, 
-            col_indices, 
-            values, 
-            rhs_matrix, 
-            output_matrix,
-            n1, dimM, dimN, mOri);
-    }
+    // for(int iter=0; iter<10; ++iter){
+    //     spmm_forward_cuda_kernel_fp16<64><<<grid_dim, block_dim>>>(
+    //         row_offsets, 
+    //         col_indices, 
+    //         values, 
+    //         rhs_matrix, 
+    //         output_matrix,
+    //         n1, dimM, dimN, mOri);
+    // }
     cudaDeviceSynchronize();
 
     //测试kernel
@@ -595,18 +595,18 @@ float spmm_forward_cuda_fp16_16(
     dim3 grid_dim(grid_x, 100 ,((dimM/100)+1));
     dim3 block_dim(128, 1, 1);
 
-    for(int iter=0; iter<10; ++iter){
+    // for(int iter=0; iter<10; ++iter){
 
-        spmm_forward_cuda_kernel_fp16_16<32><<<grid_dim, block_dim>>>(
-            row_offsets, 
-            col_indices, 
-            values, 
-            rhs_matrix, 
-            output_matrix,
-            n1, dimM, dimN, mOri);
+    //     spmm_forward_cuda_kernel_fp16_16<32><<<grid_dim, block_dim>>>(
+    //         row_offsets, 
+    //         col_indices, 
+    //         values, 
+    //         rhs_matrix, 
+    //         output_matrix,
+    //         n1, dimM, dimN, mOri);
     
-    }
-    cudaDeviceSynchronize();
+    // }
+    // cudaDeviceSynchronize();
 
     //测试kernel
     float spmm_ms_avg = 0.0f;
@@ -755,17 +755,17 @@ float spmm_forward_cuda_tf32(
     dim3 grid_dim(grid_x, 200 ,((dimM/200)+1));
     dim3 block_dim(128, 1, 1);
 
-    for(int iter=0; iter<10; ++iter){
+    // for(int iter=0; iter<10; ++iter){
         
-        spmm_forward_cuda_kernel_tf32<64><<<grid_dim, block_dim>>>(
-            row_offsets, 
-            col_indices, 
-            values, 
-            rhs_matrix, 
-            output_matrix,
-            n1, dimM, dimN, mOri);
-    }
-    cudaDeviceSynchronize();
+    //     spmm_forward_cuda_kernel_tf32<64><<<grid_dim, block_dim>>>(
+    //         row_offsets, 
+    //         col_indices, 
+    //         values, 
+    //         rhs_matrix, 
+    //         output_matrix,
+    //         n1, dimM, dimN, mOri);
+    // }
+    // cudaDeviceSynchronize();
 
     //测试kernel
     float spmm_ms_avg = 0.0f;
@@ -910,17 +910,17 @@ float spmm_forward_cuda_tf32_map(
     dim3 grid_dim(grid_x, 200 ,((dimM/200)+1));
     dim3 block_dim(128, 1, 1);
 
-    for(int iter=0; iter<10; ++iter){
+    // for(int iter=0; iter<10; ++iter){
         
-        spmm_forward_cuda_kernel_tf32_map<64><<<grid_dim, block_dim>>>(
-            row_offsets, 
-            col_indices, 
-            values, 
-            rhs_matrix, 
-            output_matrix,
-            n1, dimM, dimN, mOri);
-    }
-    cudaDeviceSynchronize();
+    //     spmm_forward_cuda_kernel_tf32_map<64><<<grid_dim, block_dim>>>(
+    //         row_offsets, 
+    //         col_indices, 
+    //         values, 
+    //         rhs_matrix, 
+    //         output_matrix,
+    //         n1, dimM, dimN, mOri);
+    // }
+    // cudaDeviceSynchronize();
 
     //测试kernel
     float spmm_ms_avg = 0.0f;
@@ -1099,19 +1099,19 @@ float spmm_forward_cuda_tf32_balance(
     dim3 grid_dim(grid_x, splitk_t ,((parts_t/splitk_t)+1));
     dim3 block_dim(128, 1, 1);
 
-    for(int iter=0; iter<10; ++iter){
+    // for(int iter=0; iter<10; ++iter){
         
-        spmm_forward_cuda_kernel_tf32_balance<64><<<grid_dim, block_dim>>>(
-            row_offsets, 
-            col_indices, 
-            values, 
-            t_window_row,
-            t_atomic,
-            rhs_matrix, 
-            output_matrix,
-            n1, parts_t, dimN, mOri,splitk_t);
-    }
-    cudaDeviceSynchronize();
+    //     spmm_forward_cuda_kernel_tf32_balance<64><<<grid_dim, block_dim>>>(
+    //         row_offsets, 
+    //         col_indices, 
+    //         values, 
+    //         t_window_row,
+    //         t_atomic,
+    //         rhs_matrix, 
+    //         output_matrix,
+    //         n1, parts_t, dimN, mOri,splitk_t);
+    // }
+    // cudaDeviceSynchronize();
 
     //测试kernel
     float spmm_ms_avg = 0.0f;
@@ -1267,17 +1267,17 @@ float spmm_forward_cuda_tf32_16(
     dim3 grid_dim(grid_x, 100 ,((dimM/100)+1));
     dim3 block_dim(128, 1, 1);
 
-    for(int iter=0; iter<10; ++iter){
+    // for(int iter=0; iter<10; ++iter){
         
-        spmm_forward_cuda_kernel_tf32_16<32><<<grid_dim, block_dim>>>(
-            row_offsets, 
-            col_indices, 
-            values, 
-            rhs_matrix, 
-            output_matrix,
-            n1, dimM, dimN, mOri);
-    }
-    cudaDeviceSynchronize();
+    //     spmm_forward_cuda_kernel_tf32_16<32><<<grid_dim, block_dim>>>(
+    //         row_offsets, 
+    //         col_indices, 
+    //         values, 
+    //         rhs_matrix, 
+    //         output_matrix,
+    //         n1, dimM, dimN, mOri);
+    // }
+    // cudaDeviceSynchronize();
 
     //测试kernel
     float spmm_ms_avg = 0.0f;
@@ -1394,16 +1394,16 @@ float spmm_forward_cuda_fp16_ori_v2(
     if(n1%Tile_N==0) grid_x-=1;
     dim3 grid_dim(grid_x, 200 ,((dimM/200)+1));
     dim3 block_dim(warps*32, 1, 1);
-    for(int iter=0; iter<10; ++iter){
-        spmm_forward_cuda_kernel_fp16_ori_v2<<<grid_dim, block_dim>>>(
-            row_offsets, 
-            col_indices, 
-            values, 
-            rhs_matrix, 
-            output_matrix,
-            n1, dimM, dimN, mOri,Tile_N);
-    }
-    cudaDeviceSynchronize();
+    // for(int iter=0; iter<10; ++iter){
+    //     spmm_forward_cuda_kernel_fp16_ori_v2<<<grid_dim, block_dim>>>(
+    //         row_offsets, 
+    //         col_indices, 
+    //         values, 
+    //         rhs_matrix, 
+    //         output_matrix,
+    //         n1, dimM, dimN, mOri,Tile_N);
+    // }
+    // cudaDeviceSynchronize();
 
     //测试kernel
     float spmm_ms_avg = 0.0f;
@@ -1519,16 +1519,16 @@ float spmm_forward_cuda_fp16_map(
     if(n1%Tile_N==0) grid_x-=1;
     dim3 grid_dim(grid_x, 200 ,((dimM/200)+1));
     dim3 block_dim(warps*32, 1, 1);
-    for(int iter=0; iter<10; ++iter){
-        spmm_forward_cuda_kernel_fp16_map<<<grid_dim, block_dim>>>(
-            row_offsets, 
-            col_indices, 
-            values, 
-            rhs_matrix, 
-            output_matrix,
-            n1, dimM, dimN, mOri,Tile_N);
-    }
-    cudaDeviceSynchronize();
+    // for(int iter=0; iter<10; ++iter){
+    //     spmm_forward_cuda_kernel_fp16_map<<<grid_dim, block_dim>>>(
+    //         row_offsets, 
+    //         col_indices, 
+    //         values, 
+    //         rhs_matrix, 
+    //         output_matrix,
+    //         n1, dimM, dimN, mOri,Tile_N);
+    // }
+    // cudaDeviceSynchronize();
 
     //测试kernel
     float spmm_ms_avg = 0.0f;
@@ -2455,17 +2455,17 @@ float spmm_forward_cuda_tf32_sr(
     dim3 grid_dim(grid_x, 200 ,((dimM/200)+1));
     dim3 block_dim(128, 1, 1);
 
-    for(int iter=0; iter<10; ++iter){
+    // for(int iter=0; iter<10; ++iter){
         
-        spmm_forward_cuda_kernel_tf32_sr<64><<<grid_dim, block_dim>>>(
-            row_offsets, 
-            col_indices, 
-            values, 
-            rhs_matrix, 
-            output_matrix,
-            n1, dimM, dimN, mOri);
-    }
-    cudaDeviceSynchronize();
+    //     spmm_forward_cuda_kernel_tf32_sr<64><<<grid_dim, block_dim>>>(
+    //         row_offsets, 
+    //         col_indices, 
+    //         values, 
+    //         rhs_matrix, 
+    //         output_matrix,
+    //         n1, dimM, dimN, mOri);
+    // }
+    // cudaDeviceSynchronize();
 
     //测试kernel
     float spmm_ms_avg = 0.0f;

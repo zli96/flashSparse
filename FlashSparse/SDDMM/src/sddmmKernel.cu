@@ -111,18 +111,18 @@ float sddmm_gen_forward_cuda_gat(
     else splitk=((parts_t/1250000)+1)*20;
     dim3 grid_dim(maxPart/warps, splitk ,(parts_t/splitk+1));
     dim3 block_dim(warps*32, 1, 1);
-    for(int iter=0; iter<10; ++iter){
-        sddmm_gen_forward_cuda_kernel_gat<<<grid_dim, block_dim>>>
-        (dimN, 
-        row_offsets, 
-        col_indices, 
-        values, 
-        t_window_row,
-        lhs_matrix, 
-        lhs_matrix, 
-        output_matrix, 
-        parts_t, warps, dimMori, splitk);
-    }
+    // for(int iter=0; iter<10; ++iter){
+    //     sddmm_gen_forward_cuda_kernel_gat<<<grid_dim, block_dim>>>
+    //     (dimN, 
+    //     row_offsets, 
+    //     col_indices, 
+    //     values, 
+    //     t_window_row,
+    //     lhs_matrix, 
+    //     lhs_matrix, 
+    //     output_matrix, 
+    //     parts_t, warps, dimMori, splitk);
+    // }
      //测试kernel
     float spmm_ms_avg = 0.0f;
     float spmm_ms = 0.0f;
