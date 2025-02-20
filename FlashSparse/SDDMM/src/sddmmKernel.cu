@@ -606,7 +606,7 @@ float sddmm_gen_forward_cuda_gat_tf32_16(
 }
 
 //gnn
-void sddmm_gen_forward_cuda_gat_gnn(
+torch::Tensor sddmm_gen_forward_cuda_gat_gnn(
     long dimN, 
     // long dimM, 
     int * row_offsets, 
@@ -628,7 +628,10 @@ void sddmm_gen_forward_cuda_gat_gnn(
     else splitk=((parts_t/1250000)+1)*20;
     dim3 grid_dim(maxPart/warps, splitk ,(parts_t/splitk+1));
     dim3 block_dim(warps*32, 1, 1);
-
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+    cudaEventRecord(start);
     sddmm_gen_forward_cuda_kernel_gat<<<grid_dim, block_dim>>>
     (dimN, 
     row_offsets, 
@@ -639,7 +642,11 @@ void sddmm_gen_forward_cuda_gat_gnn(
     rhs_matrix, 
     output_matrix,
     parts_t, warps, dimMori, splitk);
-
+    cudaEventRecord(stop);
+    cudaEventSynchronize(stop);
+    float milliseconds = 0;
+    cudaEventElapsedTime(&milliseconds, start, stop);
+    return {torch::tensor(milliseconds, torch::TensorOptions().dtype(torch::kFloat32))};
 }
 
 

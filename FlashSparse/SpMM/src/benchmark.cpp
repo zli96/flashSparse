@@ -835,7 +835,7 @@ std::vector<torch::Tensor> spmm_forward_fp16_test(
 
 //gnn
 //FP16-8x1
-void spmm_forward_cuda_fp16_balance_gnn(
+torch::Tensor spmm_forward_cuda_fp16_balance_gnn(
     int * row_offsets,
     int * col_indices, 
     double * values, 
@@ -874,7 +874,7 @@ std::vector<torch::Tensor> spmm_forward_fp16_balance_gnn(
     // float * d_output_matrix = output_matrix.data<float>();
 
     
-    spmm_forward_cuda_fp16_balance_gnn(
+    torch::Tensor time = spmm_forward_cuda_fp16_balance_gnn(
         row_offsets.data<int>(),
         col_indices.data<int>(), 
         reinterpret_cast<double *>(values.data<at::Half>()), 
@@ -888,7 +888,7 @@ std::vector<torch::Tensor> spmm_forward_fp16_balance_gnn(
         mOri); 
 
 
-    return {output_matrix};
+    return {time, output_matrix};
 }
 
 void spmm_forward_cuda_tf32_balance_gnn(
@@ -948,7 +948,7 @@ std::vector<torch::Tensor> spmm_forward_tf32_balance_gnn(
 
 
 //gnn ones
-void spmm_forward_cuda_fp16_balance_gnn_ones(
+torch::Tensor spmm_forward_cuda_fp16_balance_gnn_ones(
     int * row_offsets,
     int * col_indices, 
     double * values, 
@@ -986,7 +986,7 @@ std::vector<torch::Tensor> spmm_forward_fp16_balance_gnn_ones(
     // float * d_output_matrix = output_matrix.data<float>();
 
     
-    spmm_forward_cuda_fp16_balance_gnn_ones(
+    torch::Tensor time = spmm_forward_cuda_fp16_balance_gnn_ones(
         row_offsets.data<int>(),
         col_indices.data<int>(), 
         reinterpret_cast<double *>(values.data<at::Half>()), 
@@ -1000,7 +1000,7 @@ std::vector<torch::Tensor> spmm_forward_fp16_balance_gnn_ones(
         mOri); 
 
 
-    return {output_matrix};
+    return {time, output_matrix};
 }
 
 void spmm_forward_cuda_tf32_balance_gnn_ones(

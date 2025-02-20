@@ -1690,7 +1690,7 @@ float spmm_forward_cuda_fp16_test(
 
 
 //gnn
-void spmm_forward_cuda_fp16_balance_gnn(
+torch::Tensor spmm_forward_cuda_fp16_balance_gnn(
     int * row_offsets,
     int * col_indices, 
     double * values,
@@ -1713,7 +1713,10 @@ void spmm_forward_cuda_fp16_balance_gnn(
     else splitk_t=((parts_t/1250000)+1)*20;
     dim3 grid_dim(grid_x, splitk_t ,((parts_t/splitk_t)+1));
     dim3 block_dim(128, 1, 1);
-
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+    cudaEventRecord(start);
     spmm_forward_cuda_kernel_fp16_balance<64><<<grid_dim, block_dim>>>(
         row_offsets, 
         col_indices, 
@@ -1723,7 +1726,11 @@ void spmm_forward_cuda_fp16_balance_gnn(
         rhs_matrix, 
         output_matrix,
         n1, parts_t, dimN, mOri,splitk_t);
-
+    cudaEventRecord(stop);
+    cudaEventSynchronize(stop);
+    float milliseconds = 0;
+    cudaEventElapsedTime(&milliseconds, start, stop);
+    return {torch::tensor(milliseconds, torch::TensorOptions().dtype(torch::kFloat32))};
 }
 
 
@@ -1994,7 +2001,7 @@ __global__ void spmm_forward_cuda_kernel_tf32_balance_ones(
 //     output_tile_storer.Store(m_index_vec, dimN_index, nOri, output_matrix,mOri,nOri);
 }
 
-void spmm_forward_cuda_fp16_balance_gnn_ones(
+torch::Tensor spmm_forward_cuda_fp16_balance_gnn_ones(
     int * row_offsets,
     int * col_indices, 
     double * values,
@@ -2013,7 +2020,10 @@ void spmm_forward_cuda_fp16_balance_gnn_ones(
     else splitk_t=((parts_t/1250000)+1)*20;
     dim3 grid_dim(1, splitk_t ,((parts_t/splitk_t)+1));
     dim3 block_dim(32, 1, 1);
-
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+    cudaEventRecord(start);
     spmm_forward_cuda_kernel_fp16_balance_ones<16><<<grid_dim, block_dim>>>(
         row_offsets, 
         col_indices, 
@@ -2023,7 +2033,11 @@ void spmm_forward_cuda_fp16_balance_gnn_ones(
         rhs_matrix, 
         output_matrix,
         n1, parts_t, dimN, mOri,splitk_t);
-
+    cudaEventRecord(stop);
+    cudaEventSynchronize(stop);
+    float milliseconds = 0;
+    cudaEventElapsedTime(&milliseconds, start, stop);
+    return {torch::tensor(milliseconds, torch::TensorOptions().dtype(torch::kFloat32))};
 }
 
 

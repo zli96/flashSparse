@@ -380,7 +380,7 @@ std::vector<torch::Tensor> sddmm_gen_forward_gat_tf32_16(
 }
 
 //gnn
-void sddmm_gen_forward_cuda_gat_gnn(
+torch::Tensor sddmm_gen_forward_cuda_gat_gnn(
     long dimN, 
     // long dimM, 
     int * row_offsets, 
@@ -429,7 +429,7 @@ std::vector<torch::Tensor> sddmm_gen_forward_gat_gnn(
     // half * d_output_matrix = reinterpret_cast< half*>(output_matrix.data<at::Half>());
 
 
-    sddmm_gen_forward_cuda_gat_gnn(dimN, 
+    torch::Tensor time = sddmm_gen_forward_cuda_gat_gnn(dimN, 
     row_offsets.data<int>(),
     col_indices.data<int>(), 
     values.data<int>(), 
@@ -441,7 +441,7 @@ std::vector<torch::Tensor> sddmm_gen_forward_gat_gnn(
     mOri,
     maxPart);    
 
-    return {output_matrix};
+    return {time, output_matrix};
 }
 
 void sddmm_gen_forward_cuda_gat_tf32_gnn(
